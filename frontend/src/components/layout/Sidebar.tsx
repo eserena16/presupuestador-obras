@@ -4,10 +4,10 @@ import {
   FolderOpen,
   Truck,
   Users,
-  Settings,
   LogOut,
   HardHat,
   ChevronRight,
+  BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 
@@ -21,6 +21,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
   { to: '/proyectos', icon: <FolderOpen size={18} />, label: 'Proyectos' },
+  { to: '/catalogo', icon: <BookOpen size={18} />, label: 'Catálogo' },
   { to: '/proveedores', icon: <Truck size={18} />, label: 'Proveedores' },
   {
     to: '/admin/usuarios',

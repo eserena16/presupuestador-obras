@@ -1,9 +1,10 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, MapPin, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi } from '../api/projects'
+import { intendenciaApi, type PadronData } from '../api/intendencia'
 import type { ProjectCreate, ProjectStatus } from '../types'
 
 const OBRA_TYPES = [
@@ -34,9 +35,48 @@ export default function ProjectFormPage() {
     status: 'borrador',
   })
 
+  // Padrón catastral
+  const [padronNum, setPadronNum] = useState('')
+  const [padronLoading, setPadronLoading] = useState(false)
+  const [padronData, setPadronData] = useState<PadronData | null>(null)
+  const [padronError, setPadronError] = useState<string | null>(null)
+
   const set = (k: keyof ProjectCreate) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  // Búsqueda de padrón
+  const handlePadronSearch = async () => {
+    if (!padronNum.trim()) return
+    setPadronLoading(true)
+    setPadronError(null)
+    setPadronData(null)
+    try {
+      const data = await intendenciaApi.getPadron(padronNum.trim())
+      setPadronData(data)
+      // Auto-rellenar campos del formulario
+      if (data.direccion) {
+        const location = [data.direccion, data.barrio, 'Montevideo'].filter(Boolean).join(', ')
+        setForm((f) => ({ ...f, location }))
+      }
+      if (data.superficie_m2 && data.superficie_m2 > 0) {
+        setForm((f) => ({ ...f, surface_m2: data.superficie_m2! }))
+      }
+      toast.success(`Padrón ${padronNum} encontrado`)
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'No se encontraron datos para ese padrón'
+      setPadronError(msg)
+    } finally {
+      setPadronLoading(false)
+    }
+  }
+
+  const clearPadron = () => {
+    setPadronData(null)
+    setPadronError(null)
+    setPadronNum('')
+  }
 
   const createMutation = useMutation({
     mutationFn: () => projectsApi.create(form),
@@ -69,6 +109,108 @@ export default function ProjectFormPage() {
         <h2 className="text-lg font-semibold text-slate-100">Nuevo proyecto</h2>
       </div>
 
+      {/* Padrón catastral */}
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <MapPin size={16} className="text-blue-400" />
+          <h3 className="text-sm font-semibold text-slate-200">Consulta de Padrón (Intendencia de Montevideo)</h3>
+          <span className="text-xs text-slate-500">— opcional</span>
+        </div>
+        <p className="text-xs text-slate-400">
+          Ingresá el número de padrón catastral para auto-completar la dirección y superficie del predio.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={padronNum}
+            onChange={(e) => setPadronNum(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handlePadronSearch()}
+            placeholder="Ej: 123456"
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handlePadronSearch}
+            disabled={padronLoading || !padronNum.trim()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg flex items-center gap-2 transition-colors"
+          >
+            {padronLoading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Search size={14} />
+            )}
+            Buscar
+          </button>
+          {(padronData || padronError) && (
+            <button
+              type="button"
+              onClick={clearPadron}
+              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* Error padrón */}
+        {padronError && (
+          <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg px-3 py-2">
+            {padronError}
+          </p>
+        )}
+
+        {/* Resultado padrón */}
+        {padronData && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
+            <p className="text-xs font-semibold text-slate-300 mb-3">
+              Datos del padrón {padronData.padron}
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {padronData.direccion && (
+                <div>
+                  <span className="text-slate-500">Dirección</span>
+                  <p className="text-slate-200 font-medium">{padronData.direccion}</p>
+                </div>
+              )}
+              {padronData.barrio && (
+                <div>
+                  <span className="text-slate-500">Barrio</span>
+                  <p className="text-slate-200 font-medium">{padronData.barrio}</p>
+                </div>
+              )}
+              {padronData.superficie_m2 && (
+                <div>
+                  <span className="text-slate-500">Superficie</span>
+                  <p className="text-slate-200 font-medium">{padronData.superficie_m2} m²</p>
+                </div>
+              )}
+              {padronData.zona && (
+                <div>
+                  <span className="text-slate-500">Zona / CCZ</span>
+                  <p className="text-slate-200 font-medium">{padronData.zona}</p>
+                </div>
+              )}
+              {padronData.frente_m && (
+                <div>
+                  <span className="text-slate-500">Frente</span>
+                  <p className="text-slate-200 font-medium">{padronData.frente_m} m</p>
+                </div>
+              )}
+              {padronData.fondo_m && (
+                <div>
+                  <span className="text-slate-500">Fondo</span>
+                  <p className="text-slate-200 font-medium">{padronData.fondo_m} m</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-emerald-400 mt-2">
+              ✓ Dirección y superficie auto-completados en el formulario
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Formulario del proyecto */}
       <form onSubmit={handleSubmit} className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-5">
         {/* Nombre */}
         <div>
@@ -133,8 +275,8 @@ export default function ProjectFormPage() {
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Moneda</label>
             <select value={form.currency} onChange={set('currency')} className={inputCls}>
               <option value="USD">USD — Dólar</option>
-              <option value="CLP">CLP — Peso chileno</option>
-              <option value="UF">UF — Unidad de fomento</option>
+              <option value="UYU">UYU — Peso uruguayo</option>
+              <option value="UI">UI — Unidad Indexada</option>
             </select>
           </div>
         </div>

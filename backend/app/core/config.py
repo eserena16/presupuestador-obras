@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # CORS
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Anthropic
+    ANTHROPIC_API_KEY: str = ""
+
     # Entorno
     ENVIRONMENT: Literal["development", "production"] = "development"
 

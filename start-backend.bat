@@ -35,6 +35,10 @@ REM Crear usuarios por defecto si la BD esta limpia
 echo Verificando usuarios iniciales...
 python seed.py
 
+REM Cargar catalogo de items si esta vacio
+echo Verificando catalogo de items...
+python seed_catalog.py
+
 REM Iniciar servidor
 echo.
 echo Backend corriendo en: http://localhost:8000

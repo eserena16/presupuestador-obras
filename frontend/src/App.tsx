@@ -8,6 +8,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage'
 import TrackingPage from './pages/TrackingPage'
 import ProvidersPage from './pages/ProvidersPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import CatalogPage from './pages/CatalogPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="proyectos/:id/seguimiento" element={<TrackingPage />} />
         <Route path="proveedores" element={<ProvidersPage />} />
         <Route path="admin/usuarios" element={<AdminUsersPage />} />
+        <Route path="catalogo" element={<CatalogPage />} />
       </Route>
 
       {/* Fallback */}

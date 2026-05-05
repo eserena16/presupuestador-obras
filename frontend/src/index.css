@@ -52,4 +52,15 @@
   ::-webkit-scrollbar-track  { background: var(--app-card); }
   ::-webkit-scrollbar-thumb  { background: var(--app-raised); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--app-muted); }
+
+  /* Fix browser autofill overriding input colors (especialmente en dark mode) */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--app-card) inset !important;
+    -webkit-text-fill-color: var(--app-text) !important;
+    caret-color: var(--app-text);
+    transition: background-color 9999s ease-in-out 0s;
+  }
 }

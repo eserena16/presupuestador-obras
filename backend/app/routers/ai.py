@@ -1,12 +1,12 @@
 """
 Rutas de sugerencias con IA usando el API de Anthropic (Claude).
-POST /api/ai/suggest  → respuesta SSE con el desglose de presupuesto
+POST /api/ai/suggest      → respuesta SSE con el desglose (streaming)
 POST /api/ai/suggest/json → respuesta JSON completa (sin streaming)
 """
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,27 +20,27 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.project import Project
-from app.models.budget import BudgetVersion, BudgetLine, Rubro
-from app.models.catalog import CatalogCategory, CatalogItem
+from app.models.budget import BudgetLine, Rubro
+from app.models.catalog import CatalogCategory, CatalogItem  # noqa: F401 — importados para que SQLAlchemy los registre
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 
 # ---------------------------------------------------------------------------
-# Schemas de request / response
+# Schemas
 # ---------------------------------------------------------------------------
 
 class AISuggestRequest(BaseModel):
-    project_id: Optional[UUID] = None   # si ya existe, para leer su info
-    obra_type: str                       # "vivienda", "local comercial", etc.
+    project_id: Optional[UUID] = None
+    obra_type: str
     surface_m2: float
     description: Optional[str] = None
     location: Optional[str] = None
-    budget_usd: Optional[float] = None  # presupuesto máximo, opcional
+    budget_usd: Optional[float] = None
 
 
 class AISuggestResponse(BaseModel):
-    categories: list[dict]   # [{name, percentage, estimated_usd, items: [...]}]
+    categories: list[dict]
     total_usd: float
     notes: str
 
@@ -53,8 +53,8 @@ def _build_system_prompt() -> str:
     return (
         "Eres un arquitecto y presupuestador de obras experto en Uruguay. "
         "Tu tarea es generar un desglose de presupuesto estimado para una obra de construccion. "
-        "Responde SIEMPRE con un objeto JSON valido con la siguiente estructura (sin markdown, "
-        "sin bloques ```json, solo el JSON puro):\n\n"
+        "Responde SIEMPRE con un objeto JSON valido con la siguiente estructura "
+        "(sin markdown, sin bloques ```json, solo el JSON puro):\n\n"
         '{\n'
         '  "categories": [\n'
         '    {\n'
@@ -62,18 +62,19 @@ def _build_system_prompt() -> str:
         '      "percentage": 15.0,\n'
         '      "estimated_usd": 12000.0,\n'
         '      "items": [\n'
-        '        {"description": "Item especifico", "unit": "m2", "quantity": 120, "unit_price": 45, "subtotal": 5400}\n'
+        '        {"description": "Item especifico", "unit": "m2", '
+        '"quantity": 120, "unit_price": 45, "subtotal": 5400}\n'
         '      ]\n'
         '    }\n'
         '  ],\n'
         '  "total_usd": 80000.0,\n'
-        '  "notes": "Observaciones y consideraciones importantes del presupuesto"\n'
+        '  "notes": "Observaciones y consideraciones importantes"\n'
         '}\n\n'
         "Usa precios en USD tipicos de Uruguay (2024-2025). "
-        "Incluye todas las categorias relevantes: movimiento de tierras, fundaciones, estructura, "
-        "mamposteria, cubiertas, revoques, revestimientos, carpinteria, instalacion sanitaria, "
-        "instalacion electrica, pintura e instalaciones especiales. "
-        "Asegurate que la suma de percentages sea 100 y que la suma de estimated_usd sea total_usd."
+        "Incluye categorias: movimiento de tierras, fundaciones, estructura, "
+        "mamposteria, cubiertas, revoques, revestimientos, carpinteria, "
+        "instalacion sanitaria, instalacion electrica, pintura, instalaciones especiales. "
+        "La suma de percentages debe ser 100 y la suma de estimated_usd debe ser total_usd."
     )
 
 
@@ -90,7 +91,7 @@ def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> s
         lines.append(f"Presupuesto maximo disponible: USD {req.budget_usd:,.0f}")
 
     if similar_projects:
-        lines.append("\nProyectos similares en la base de datos (para referencia de costos):")
+        lines.append("\nProyectos similares en la base de datos (referencia de costos):")
         for p in similar_projects[:5]:
             lines.append(
                 f"  - {p['name']} | {p['obra_type']} | {p['surface_m2']}m2 "
@@ -98,13 +99,12 @@ def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> s
             )
 
     lines.append(
-        "\nGenera el desglose de presupuesto completo en formato JSON segun las instrucciones."
+        "\nGenera el desglose de presupuesto completo en formato JSON."
     )
     return "\n".join(lines)
 
 
 def _get_similar_projects(db: Session, obra_type: str, surface_m2: float) -> list[dict]:
-    """Obtiene proyectos similares para usar como contexto."""
     projects = (
         db.query(Project)
         .filter(Project.obra_type.ilike(f"%{obra_type}%"))
@@ -113,8 +113,6 @@ def _get_similar_projects(db: Session, obra_type: str, surface_m2: float) -> lis
     )
     result = []
     for p in projects:
-        # Buscar el presupuesto total de la version activa
-        # BudgetLine -> Rubro -> BudgetVersion
         budget_usd = None
         if p.active_version_id:
             lines = (
@@ -124,7 +122,7 @@ def _get_similar_projects(db: Session, obra_type: str, surface_m2: float) -> lis
                 .all()
             )
             if lines:
-                budget_usd = sum(l.quantity * l.unit_price for l in lines)
+                budget_usd = sum(line.quantity * line.unit_price for line in lines)
 
         result.append({
             "name": p.name,
@@ -133,6 +131,15 @@ def _get_similar_projects(db: Session, obra_type: str, surface_m2: float) -> lis
             "budget_usd": round(budget_usd, 2) if budget_usd else None,
         })
     return result
+
+
+def _extract_json(text: str) -> dict:
+    """Extrae el primer JSON completo del texto de la respuesta."""
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start == -1:
+        raise ValueError("No se encontro JSON en la respuesta de la IA")
+    return json.loads(text[start:end])
 
 
 # ---------------------------------------------------------------------------
@@ -146,33 +153,39 @@ async def ai_suggest_streaming(
     current_user=Depends(get_current_user),
 ):
     """
-    Genera una sugerencia de presupuesto usando Claude con streaming (SSE).
-    El cliente recibe texto en tiempo real.
+    Genera una sugerencia de presupuesto con streaming SSE.
+    Usa AsyncAnthropic para no bloquear el event loop.
     """
     if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="API key de Anthropic no configurada.")
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY no configurada. Agregala en backend/.env"
+        )
 
     similar = _get_similar_projects(db, req.obra_type, req.surface_m2)
     system_prompt = _build_system_prompt()
     user_prompt = _build_user_prompt(req, similar)
 
-    async def generate():
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    async def generate() -> AsyncGenerator[str, None]:
+        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
         try:
-            with client.messages.stream(
+            async with client.messages.stream(
                 model="claude-opus-4-7",
                 max_tokens=4096,
                 thinking={"type": "adaptive"},
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
             ) as stream:
-                for text in stream.text_stream:
-                    # Enviar cada chunk como SSE
+                async for text in stream.text_stream:
                     yield f"data: {json.dumps({'chunk': text})}\n\n"
 
             yield "data: [DONE]\n\n"
 
-        except anthropic.APIError as e:
+        except anthropic.APIStatusError as e:
+            yield f"data: {json.dumps({'error': f'Error de API: {e.status_code} {e.message}'})}\n\n"
+        except anthropic.APIConnectionError as e:
+            yield f"data: {json.dumps({'error': f'Error de conexion: {str(e)}'})}\n\n"
+        except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(
@@ -192,47 +205,44 @@ async def ai_suggest_json(
     current_user=Depends(get_current_user),
 ):
     """
-    Genera una sugerencia de presupuesto usando Claude y devuelve JSON completo.
-    Puede tardar varios segundos.
+    Genera una sugerencia de presupuesto y devuelve JSON completo (sin streaming).
     """
     if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="API key de Anthropic no configurada.")
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY no configurada. Agregala en backend/.env"
+        )
 
     similar = _get_similar_projects(db, req.obra_type, req.surface_m2)
     system_prompt = _build_system_prompt()
     user_prompt = _build_user_prompt(req, similar)
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     try:
-        with client.messages.stream(
+        async with client.messages.stream(
             model="claude-opus-4-7",
             max_tokens=4096,
             thinking={"type": "adaptive"},
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
         ) as stream:
-            full_text = stream.get_final_message().content
-            # Extraer texto del content block
+            final_msg = await stream.get_final_message()
             text = ""
-            for block in full_text:
+            for block in final_msg.content:
                 if hasattr(block, "text"):
                     text += block.text
 
-    except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Error de Anthropic: {e}")
+    except anthropic.APIStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Error de Anthropic API: {e.status_code} {e.message}")
+    except anthropic.APIConnectionError as e:
+        raise HTTPException(status_code=502, detail=f"Error de conexion con Anthropic: {e}")
 
-    # Parsear JSON
     try:
-        # A veces Claude incluye texto antes del JSON; buscar el primer {
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        if start == -1:
-            raise ValueError("No se encontro JSON en la respuesta")
-        data = json.loads(text[start:end])
+        data = _extract_json(text)
         return AISuggestResponse(**data)
     except (json.JSONDecodeError, ValueError, KeyError) as e:
         raise HTTPException(
             status_code=422,
-            detail=f"No se pudo parsear la respuesta de IA: {e}. Respuesta: {text[:500]}"
+            detail=f"No se pudo parsear la respuesta de la IA: {e}. Respuesta: {text[:500]}"
         )

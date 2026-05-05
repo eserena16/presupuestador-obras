@@ -66,7 +66,7 @@ export default function LoginPage() {
       </div>
 
       {/* Panel derecho — formulario */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-6 bg-app-canvas">
         <div className="w-full max-w-md">
           {/* Logo mobile */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
@@ -84,47 +84,56 @@ export default function LoginPage() {
             <p className="text-app-muted mt-1 text-sm">Ingresá con tu usuario y contraseña</p>
           </div>
 
-          <form onSubmit={handleSubmit} className={`space-y-5 transition-transform ${shake ? 'animate-shake' : ''}`}>
-            <div>
-              <label className="block text-sm font-medium text-app-text2 mb-1.5">Usuario</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin / tu@email.com"
-                autoFocus
-                className="w-full bg-app-card border border-app-line2 rounded-lg px-4 py-3 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app-text2 mb-1.5">Contraseña</label>
-              <div className="relative">
+          {/* Card del formulario */}
+          <div className="bg-app-card border border-app-line rounded-2xl p-8 shadow-sm">
+            <form onSubmit={handleSubmit} className={`space-y-5 transition-transform ${shake ? 'animate-shake' : ''}`}>
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-2">
+                  Usuario
+                </label>
                 <input
-                  type={showPass ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-app-card border border-app-line2 rounded-lg px-4 py-3 pr-12 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  autoFocus
+                  autoComplete="username"
+                  className="w-full bg-app-canvas border-2 border-app-line2 rounded-xl px-4 py-3 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 transition-colors text-base"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-app-muted hover:text-app-text transition-colors"
-                >
-                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
               </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !username.trim() || !password.trim()}
-              className="w-full bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {loading ? <><Loader2 size={18} className="animate-spin" />Ingresando...</> : 'Ingresar'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-2">
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="w-full bg-app-canvas border-2 border-app-line2 rounded-xl px-4 py-3 pr-12 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 transition-colors text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-app-muted hover:text-app-text transition-colors"
+                  >
+                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !username.trim() || !password.trim()}
+                className="w-full bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-base mt-2"
+              >
+                {loading ? <><Loader2 size={18} className="animate-spin" />Ingresando...</> : 'Ingresar'}
+              </button>
+            </form>
+          </div>
 
-          <p className="text-center text-app-faint text-xs mt-8">
+          <p className="text-center text-app-faint text-xs mt-6">
             ST Arquitectos © {new Date().getFullYear()}
           </p>
         </div>

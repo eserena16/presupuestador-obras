@@ -10,8 +10,8 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)):
-    """Login con email (o nombre de usuario) + contraseña."""
-    term = body.email.strip().lower()
+    """Login con email (o nombre de usuario) + contrasena."""
+    term = body.username.strip().lower()
 
     # Busca por email o por nombre (case-insensitive)
     user = db.query(User).filter(
@@ -27,9 +27,11 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         )
 
     token_data = {"sub": str(user.id), "role": user.role.value}
+    from app.schemas.auth import UserInToken
     return TokenResponse(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
+        user=UserInToken.model_validate(user),
     )
 
 

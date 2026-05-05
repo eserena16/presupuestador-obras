@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-Script de inicialización de datos.
+Script de inicializacion de datos.
 Crea los usuarios por defecto (admin/admin y enzo/enzo).
 
 Uso:
@@ -9,13 +10,18 @@ Uso:
 import sys
 import os
 
-# Asegurar que el módulo 'app' sea encontrado
+# Forzar UTF-8 en la salida de consola (Windows)
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+# Asegurar que el modulo 'app' sea encontrado
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal, engine, Base
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models import *  # importar todos los modelos para crear tablas
+
 
 def seed():
     # Crear todas las tablas si no existen
@@ -26,22 +32,22 @@ def seed():
         # Verificar si ya existen usuarios
         existing = db.query(User).count()
         if existing > 0:
-            print(f"✓ Ya existen {existing} usuarios en la base de datos. Seed omitido.")
+            print(f"[OK] Ya existen {existing} usuarios en la base de datos. Seed omitido.")
             return
 
         users = [
             User(
                 name="admin",
-                email="admin@stargquitectos.com",
+                email="admin@starquitectos.com",
                 role=UserRole.admin,
-                hashed_password=hash_password("admin"),
+                password=hash_password("admin"),
                 active=True,
             ),
             User(
                 name="enzo",
                 email="enzo@starquitectos.com",
                 role=UserRole.creador,
-                hashed_password=hash_password("enzo"),
+                password=hash_password("enzo"),
                 active=True,
             ),
         ]
@@ -50,13 +56,13 @@ def seed():
             db.add(u)
 
         db.commit()
-        print("✓ Usuarios creados:")
-        print("  → admin / admin  (rol: admin)")
-        print("  → enzo  / enzo   (rol: creador)")
+        print("[OK] Usuarios creados:")
+        print("  -> admin / admin  (rol: admin)")
+        print("  -> enzo  / enzo   (rol: creador)")
 
     except Exception as e:
         db.rollback()
-        print(f"✗ Error al crear usuarios: {e}")
+        print(f"[ERROR] No se pudieron crear usuarios: {e}")
         raise
     finally:
         db.close()

@@ -70,19 +70,19 @@ export default function TrackingPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(`/proyectos/${id}`)}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+          className="p-2 rounded-lg text-app-muted hover:bg-app-card hover:text-app-text transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-app-text">
             Seguimiento — {project?.name ?? '...'}
           </h2>
-          <p className="text-sm text-slate-500">Control de gastos reales</p>
+          <p className="text-sm text-app-muted">Control de gastos reales</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           <Plus size={16} /> Registrar gasto
         </button>
@@ -90,77 +90,77 @@ export default function TrackingPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="bg-app-canvas border border-app-line rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign size={16} className="text-blue-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Total gastado</span>
+            <DollarSign size={16} className="text-sky-500" />
+            <span className="text-xs text-app-muted uppercase tracking-wide">Total gastado</span>
           </div>
-          <p className="text-2xl font-bold text-white">${fmt(totalSpent)}</p>
-          <p className="text-xs text-slate-500 mt-1">{expenses.length} registros</p>
+          <p className="text-2xl font-bold text-app-text">${fmt(totalSpent)}</p>
+          <p className="text-xs text-app-muted mt-1">{expenses.length} registros</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="bg-app-canvas border border-app-line rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <Activity size={16} className="text-emerald-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Categorías</span>
+            <Activity size={16} className="text-emerald-500" />
+            <span className="text-xs text-app-muted uppercase tracking-wide">Categorías</span>
           </div>
-          <p className="text-2xl font-bold text-white">{Object.keys(byCategory).length}</p>
-          <p className="text-xs text-slate-500 mt-1">rubros con gastos</p>
+          <p className="text-2xl font-bold text-app-text">{Object.keys(byCategory).length}</p>
+          <p className="text-xs text-app-muted mt-1">rubros con gastos</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="bg-app-canvas border border-app-line rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={16} className="text-amber-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Mayor gasto</span>
+            <TrendingUp size={16} className="text-amber-500" />
+            <span className="text-xs text-app-muted uppercase tracking-wide">Mayor gasto</span>
           </div>
           {chartData[0] ? (
             <>
-              <p className="text-2xl font-bold text-white">${fmt(chartData[0].amount)}</p>
-              <p className="text-xs text-slate-500 mt-1 truncate">{chartData[0].name}</p>
+              <p className="text-2xl font-bold text-app-text">${fmt(chartData[0].amount)}</p>
+              <p className="text-xs text-app-muted mt-1 truncate">{chartData[0].name}</p>
             </>
           ) : (
-            <p className="text-2xl font-bold text-slate-600">—</p>
+            <p className="text-2xl font-bold text-app-faint">—</p>
           )}
         </div>
       </div>
 
       {/* Gráfico */}
       {chartData.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-slate-300 mb-4">Gastos por categoría</h3>
+        <div className="bg-app-canvas border border-app-line rounded-xl p-5">
+          <h3 className="text-sm font-medium text-app-text3 mb-4">Gastos por categoría</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => `$${fmt(v)}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--app-line)" />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--app-muted)' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--app-muted)' }} tickFormatter={(v) => `$${fmt(v)}`} />
               <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                contentStyle={{ background: 'var(--app-card)', border: '1px solid var(--app-line2)', borderRadius: '8px', color: 'var(--app-text)' }}
                 formatter={(v: number) => [`$${fmt(v)}`, 'Monto']}
               />
-              <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {/* Tabla de gastos */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-800">
-          <h3 className="text-sm font-medium text-slate-300">Gastos registrados</h3>
+      <div className="bg-app-canvas border border-app-line rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-app-line">
+          <h3 className="text-sm font-medium text-app-text3">Gastos registrados</h3>
         </div>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-slate-400">
+          <div className="flex items-center justify-center py-12 text-app-muted">
             <Loader2 size={20} className="animate-spin mr-2" /> Cargando...
           </div>
         ) : expenses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+          <div className="flex flex-col items-center justify-center py-12 text-app-faint">
             <TrendingDown size={32} className="mb-3 opacity-30" />
             <p className="text-sm">No hay gastos registrados</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-800">
+              <tr className="text-app-muted text-xs uppercase tracking-wider border-b border-app-line">
                 <th className="text-left px-4 py-3">Fecha</th>
                 <th className="text-left px-4 py-3">Descripción</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Categoría</th>
@@ -171,24 +171,24 @@ export default function TrackingPage() {
             </thead>
             <tbody>
               {expenses.map((e) => (
-                <tr key={e.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 group">
-                  <td className="px-4 py-3 text-slate-500 text-xs">
+                <tr key={e.id} className="border-b border-app-line last:border-0 hover:bg-app-card group">
+                  <td className="px-4 py-3 text-app-muted text-xs">
                     {format(new Date(e.date), 'dd/MM/yyyy')}
                   </td>
-                  <td className="px-4 py-3 text-slate-200">{e.description}</td>
-                  <td className="px-4 py-3 text-slate-400 hidden md:table-cell">{e.category}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell">
+                  <td className="px-4 py-3 text-app-text2">{e.description}</td>
+                  <td className="px-4 py-3 text-app-muted hidden md:table-cell">{e.category}</td>
+                  <td className="px-4 py-3 text-app-muted text-xs hidden lg:table-cell">
                     {e.provider_name ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-100">
+                  <td className="px-4 py-3 text-right font-mono text-app-text">
                     ${fmt(e.amount)}
-                    <span className="text-xs text-slate-500 ml-1">{e.currency}</span>
+                    <span className="text-xs text-app-muted ml-1">{e.currency}</span>
                   </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => deleteMutation.mutate(e.id)}
                       disabled={deleteMutation.isPending}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-app-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -197,11 +197,11 @@ export default function TrackingPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-700">
-                <td colSpan={4} className="px-4 py-3 text-xs text-slate-500 font-medium uppercase">
+              <tr className="border-t border-app-line2">
+                <td colSpan={4} className="px-4 py-3 text-xs text-app-muted font-medium uppercase">
                   Total
                 </td>
-                <td className="px-4 py-3 text-right font-mono font-bold text-white">
+                <td className="px-4 py-3 text-right font-mono font-bold text-app-text">
                   ${fmt(totalSpent)}
                 </td>
                 <td />
@@ -285,23 +285,23 @@ function AddExpenseModal({
       setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const inputCls =
-    'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500'
+    'w-full bg-app-card border border-app-line2 rounded-lg px-3 py-2 text-sm text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500'
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h3 className="font-semibold text-white">Registrar gasto</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200"><X size={18} /></button>
+      <div className="bg-app-canvas border border-app-line2 rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-app-line">
+          <h3 className="font-semibold text-app-text">Registrar gasto</h3>
+          <button onClick={onClose} className="text-app-muted hover:text-app-text"><X size={18} /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Fecha *</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">Fecha *</label>
               <input type="date" value={form.date} onChange={set('date')} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Moneda</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">Moneda</label>
               <select value={form.currency} onChange={set('currency')} className={inputCls}>
                 <option>USD</option>
                 <option>CLP</option>
@@ -311,19 +311,19 @@ function AddExpenseModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Descripción *</label>
+            <label className="block text-xs font-medium text-app-muted mb-1">Descripción *</label>
             <input value={form.description} onChange={set('description')} placeholder="Ej: Compra de cemento Portland" className={inputCls} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Categoría *</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">Categoría *</label>
               <select value={form.category} onChange={set('category')} className={inputCls}>
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Monto *</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">Monto *</label>
               <input
                 type="number"
                 min={0}
@@ -337,7 +337,7 @@ function AddExpenseModal({
 
           {/* Proveedor */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Proveedor</label>
+            <label className="block text-xs font-medium text-app-muted mb-1">Proveedor</label>
             {providers.length > 0 ? (
               <select
                 value={selectedProviderId}
@@ -370,23 +370,23 @@ function AddExpenseModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">N° Factura / Ref.</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">N° Factura / Ref.</label>
               <input value={form.invoice_ref} onChange={set('invoice_ref')} placeholder="FAC-001" className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Notas</label>
+              <label className="block text-xs font-medium text-app-muted mb-1">Notas</label>
               <input value={form.notes} onChange={set('notes')} placeholder="Observaciones" className={inputCls} />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-800">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-app-line">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-app-text2 hover:bg-app-card rounded-lg">
             Cancelar
           </button>
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !form.description || !form.amount}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium rounded-lg flex items-center gap-2"
+            className="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white text-sm font-medium rounded-lg flex items-center gap-2"
           >
             {saveMutation.isPending && <Loader2 size={14} className="animate-spin" />}
             Registrar gasto

@@ -23,7 +23,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) return
-
     setLoading(true)
     try {
       const res = await authApi.login(username.trim(), password)
@@ -39,19 +38,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950">
+    <div className="min-h-screen flex bg-app-bg">
       {/* Panel izquierdo — branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-center items-center bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 p-12 relative overflow-hidden">
-        {/* Círculos decorativos */}
-        <div className="absolute top-[-80px] left-[-80px] w-80 h-80 rounded-full bg-blue-600/20" />
-        <div className="absolute bottom-[-60px] right-[-60px] w-64 h-64 rounded-full bg-blue-500/10" />
-
+      <div className="hidden lg:flex w-1/2 flex-col justify-center items-center bg-gradient-to-br from-sky-700 via-sky-600 to-sky-800 dark:from-sky-900 dark:via-sky-800 dark:to-slate-900 p-12 relative overflow-hidden">
+        <div className="absolute top-[-80px] left-[-80px] w-80 h-80 rounded-full bg-sky-500/20" />
+        <div className="absolute bottom-[-60px] right-[-60px] w-64 h-64 rounded-full bg-sky-400/10" />
         <div className="relative z-10 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-6 shadow-2xl">
+          <div className="w-20 h-20 rounded-2xl bg-white/20 dark:bg-sky-500 flex items-center justify-center mx-auto mb-6 shadow-2xl backdrop-blur-sm">
             <HardHat size={44} className="text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">ST Arquitectos</h1>
-          <p className="text-blue-200 text-lg">Presupuestador de Obras</p>
+          <p className="text-sky-100 text-lg">Presupuestador de Obras</p>
           <div className="mt-10 text-left space-y-3">
             {[
               'Gestión de proyectos y presupuestos',
@@ -59,8 +56,8 @@ export default function LoginPage() {
               'Seguimiento de gastos reales',
               'Catálogo de precios actualizado',
             ].map((f) => (
-              <div key={f} className="flex items-center gap-3 text-blue-100 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+              <div key={f} className="flex items-center gap-3 text-sky-100 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-300 flex-shrink-0" />
                 {f}
               </div>
             ))}
@@ -73,79 +70,61 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo mobile */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center">
               <HardHat size={22} className="text-white" />
             </div>
             <div>
-              <p className="font-bold text-white">ST Arquitectos</p>
-              <p className="text-xs text-slate-400">Presupuestador de Obras</p>
+              <p className="font-bold text-app-text">ST Arquitectos</p>
+              <p className="text-xs text-app-muted">Presupuestador de Obras</p>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white">Iniciar sesión</h2>
-            <p className="text-slate-400 mt-1 text-sm">
-              Ingresá con tu usuario y contraseña
-            </p>
+            <h2 className="text-2xl font-bold text-app-text">Iniciar sesión</h2>
+            <p className="text-app-muted mt-1 text-sm">Ingresá con tu usuario y contraseña</p>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className={`space-y-5 transition-transform ${shake ? 'animate-shake' : ''}`}
-          >
+          <form onSubmit={handleSubmit} className={`space-y-5 transition-transform ${shake ? 'animate-shake' : ''}`}>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Usuario
-              </label>
+              <label className="block text-sm font-medium text-app-text2 mb-1.5">Usuario</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin / tu@email.com"
                 autoFocus
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full bg-app-card border border-app-line2 rounded-lg px-4 py-3 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Contraseña
-              </label>
+              <label className="block text-sm font-medium text-app-text2 mb-1.5">Contraseña</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-full bg-app-card border border-app-line2 rounded-lg px-4 py-3 pr-12 text-app-text placeholder-app-muted focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-app-muted hover:text-app-text transition-colors"
                 >
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-
             <button
               type="submit"
               disabled={loading || !username.trim() || !password.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Ingresando...
-                </>
-              ) : (
-                'Ingresar'
-              )}
+              {loading ? <><Loader2 size={18} className="animate-spin" />Ingresando...</> : 'Ingresar'}
             </button>
           </form>
 
-          <p className="text-center text-slate-600 text-xs mt-8">
+          <p className="text-center text-app-faint text-xs mt-8">
             ST Arquitectos © {new Date().getFullYear()}
           </p>
         </div>

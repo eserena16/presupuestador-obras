@@ -42,14 +42,14 @@ export default function ProvidersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">Proveedores</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-lg font-semibold text-app-text">Proveedores</h2>
+          <p className="text-sm text-app-muted">
             {providers.filter((p) => p.active).length} activos de {providers.length} total
           </p>
         </div>
         <button
           onClick={() => { setEditing(null); setShowModal(true) }}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           <Plus size={16} /> Nuevo proveedor
         </button>
@@ -57,24 +57,24 @@ export default function ProvidersPage() {
 
       {/* Búsqueda */}
       <div className="relative max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre, categoría o RUT..."
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          className="w-full bg-app-card border border-app-line2 rounded-lg pl-9 pr-4 py-2 text-sm text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500"
         />
       </div>
 
       {/* Tabla */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+      <div className="bg-app-canvas rounded-xl border border-app-line overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-slate-400">
+          <div className="flex items-center justify-center py-16 text-app-muted">
             <Loader2 size={22} className="animate-spin mr-2" />
             Cargando...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+          <div className="flex flex-col items-center justify-center py-16 text-app-muted">
             <Truck size={36} className="mb-3 opacity-30" />
             <p className="text-sm">
               {search ? 'Sin resultados para esa búsqueda' : 'No hay proveedores aún'}
@@ -83,7 +83,7 @@ export default function ProvidersPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-500 text-xs uppercase tracking-wider">
+              <tr className="border-b border-app-line text-app-muted text-xs uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Nombre</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Categoría</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">RUT</th>
@@ -94,25 +94,25 @@ export default function ProvidersPage() {
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 group">
+                <tr key={p.id} className="border-b border-app-line last:border-0 hover:bg-app-card group">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-100">{p.name}</p>
-                    {p.email && <p className="text-xs text-slate-500">{p.email}</p>}
+                    <p className="font-medium text-app-text">{p.name}</p>
+                    {p.email && <p className="text-xs text-app-muted">{p.email}</p>}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 hidden md:table-cell">
+                  <td className="px-4 py-3 text-app-muted hidden md:table-cell">
                     {p.category ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 hidden lg:table-cell">
+                  <td className="px-4 py-3 text-app-muted hidden lg:table-cell">
                     {p.rut ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 hidden lg:table-cell">
+                  <td className="px-4 py-3 text-app-muted hidden lg:table-cell">
                     {p.phone ?? '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                       p.active
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-slate-700 text-slate-400'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
+                        : 'bg-app-card text-app-muted'
                     }`}>
                       {p.active ? 'Activo' : 'Inactivo'}
                     </span>
@@ -121,13 +121,13 @@ export default function ProvidersPage() {
                     <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setEditing(p); setShowModal(true) }}
-                        className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
+                        className="p-1.5 rounded text-app-muted hover:text-sky-500 hover:bg-sky-500/10 transition-colors"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setToDelete(p)}
-                        className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        className="p-1.5 rounded text-app-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -155,23 +155,23 @@ export default function ProvidersPage() {
       {/* Modal confirmar borrado */}
       {toDelete && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-app-canvas border border-app-line2 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <AlertTriangle size={20} className="text-red-400" />
+                <AlertTriangle size={20} className="text-red-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Eliminar proveedor</h3>
-                <p className="text-sm text-slate-400">Esta acción no se puede deshacer</p>
+                <h3 className="font-semibold text-app-text">Eliminar proveedor</h3>
+                <p className="text-sm text-app-muted">Esta acción no se puede deshacer</p>
               </div>
             </div>
-            <p className="text-slate-300 text-sm mb-6">
-              ¿Eliminar a <span className="font-semibold text-white">"{toDelete.name}"</span>?
+            <p className="text-app-text2 text-sm mb-6">
+              ¿Eliminar a <span className="font-semibold text-app-text">"{toDelete.name}"</span>?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setToDelete(null)}
-                className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 text-sm"
+                className="px-4 py-2 rounded-lg text-app-text2 hover:bg-app-card text-sm"
               >
                 Cancelar
               </button>
@@ -240,12 +240,12 @@ function ProviderModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h3 className="font-semibold text-white">
+      <div className="bg-app-canvas border border-app-line2 rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-app-line">
+          <h3 className="font-semibold text-app-text">
             {provider ? 'Editar proveedor' : 'Nuevo proveedor'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+          <button onClick={onClose} className="text-app-muted hover:text-app-text">
             <X size={18} />
           </button>
         </div>
@@ -294,26 +294,26 @@ function ProviderModal({
           </Field>
 
           {provider && (
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-app-text3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.active}
                 onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-                className="accent-blue-500"
+                className="accent-sky-500"
               />
               Proveedor activo
             </label>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-800">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg transition-colors">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-app-line">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-app-text2 hover:bg-app-card rounded-lg transition-colors">
             Cancelar
           </button>
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !form.name.trim()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             {saveMutation.isPending && <Loader2 size={14} className="animate-spin" />}
             {provider ? 'Guardar cambios' : 'Crear proveedor'}
@@ -325,12 +325,12 @@ function ProviderModal({
 }
 
 const inputCls =
-  'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500'
+  'w-full bg-app-card border border-app-line2 rounded-lg px-3 py-2 text-sm text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-400 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-app-muted mb-1">{label}</label>
       {children}
     </div>
   )

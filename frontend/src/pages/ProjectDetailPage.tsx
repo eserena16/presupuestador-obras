@@ -14,11 +14,11 @@ const STATUS_LABEL: Record<string, string> = {
   completado: 'Completado', cancelado: 'Cancelado',
 }
 const STATUS_COLOR: Record<string, string> = {
-  borrador: 'bg-slate-700 text-slate-300',
-  en_progreso: 'bg-blue-500/20 text-blue-300',
-  pausado: 'bg-amber-500/20 text-amber-300',
-  completado: 'bg-emerald-500/20 text-emerald-300',
-  cancelado: 'bg-red-500/20 text-red-300',
+  borrador:    'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+  en_progreso: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
+  pausado:     'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+  completado:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+  cancelado:   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
 }
 
 export default function ProjectDetailPage() {
@@ -87,7 +87,7 @@ export default function ProjectDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400">
+      <div className="flex items-center justify-center py-20 text-app-muted">
         <Loader2 size={24} className="animate-spin mr-2" /> Cargando proyecto...
       </div>
     )
@@ -95,7 +95,7 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-20 text-app-muted">
         <FolderOpen size={40} className="mb-3 opacity-30" />
         <p>Proyecto no encontrado</p>
       </div>
@@ -108,19 +108,19 @@ export default function ProjectDetailPage() {
       <div className="flex items-start gap-3">
         <button
           onClick={() => navigate('/')}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors mt-0.5"
+          className="p-2 rounded-lg text-app-muted hover:bg-app-card hover:text-app-text transition-colors mt-0.5"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-xl font-semibold text-white">{project.name}</h2>
+            <h2 className="text-xl font-semibold text-app-text">{project.name}</h2>
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[project.status]}`}>
               {STATUS_LABEL[project.status]}
             </span>
           </div>
           {project.description && (
-            <p className="text-sm text-slate-400 mt-1">{project.description}</p>
+            <p className="text-sm text-app-muted mt-1">{project.description}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function ProjectDetailPage() {
           {/* Botón seguimiento */}
           <button
             onClick={() => navigate(`/proyectos/${project.id}/seguimiento`)}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 bg-app-card hover:bg-app-raised border border-app-line2 text-app-text2 text-sm px-4 py-2 rounded-lg transition-colors"
           >
             <Activity size={16} />
             Seguimiento
@@ -154,23 +154,23 @@ export default function ProjectDetailPage() {
 
       {/* Panel de sugerencia IA */}
       {aiOpen && (
-        <div className="bg-slate-900 border border-violet-800/50 rounded-xl overflow-hidden">
+        <div className="bg-app-canvas border border-violet-800/50 rounded-xl overflow-hidden">
           {/* Cabecera del panel */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800 bg-violet-900/10">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-app-line bg-violet-900/10">
             <Sparkles size={16} className="text-violet-400" />
-            <span className="text-sm font-semibold text-violet-200">Sugerencia de presupuesto — IA</span>
+            <span className="text-sm font-semibold text-violet-200 dark:text-violet-200">Sugerencia de presupuesto — IA</span>
             <div className="flex-1" />
             {aiLoading && (
               <button
                 onClick={cancelAi}
-                className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition-colors"
+                className="text-xs text-app-muted hover:text-red-500 flex items-center gap-1 transition-colors"
               >
                 <X size={12} /> Cancelar
               </button>
             )}
             <button
               onClick={() => setAiOpen(false)}
-              className="text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-app-faint hover:text-app-text3 transition-colors"
             >
               <X size={16} />
             </button>
@@ -186,7 +186,7 @@ export default function ProjectDetailPage() {
                   Claude está analizando el proyecto...
                 </div>
                 {aiText && (
-                  <pre className="text-xs text-slate-400 font-mono whitespace-pre-wrap bg-slate-800/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  <pre className="text-xs text-app-muted font-mono whitespace-pre-wrap bg-app-card rounded-lg p-3 max-h-48 overflow-y-auto">
                     {aiText}
                   </pre>
                 )}
@@ -197,18 +197,18 @@ export default function ProjectDetailPage() {
             {aiResult && (
               <div className="space-y-4">
                 {/* Total */}
-                <div className="flex items-center gap-3 bg-slate-800/50 rounded-lg p-4">
-                  <DollarSign size={20} className="text-emerald-400" />
+                <div className="flex items-center gap-3 bg-app-card rounded-lg p-4">
+                  <DollarSign size={20} className="text-emerald-500" />
                   <div>
-                    <p className="text-xs text-slate-400">Presupuesto total estimado</p>
-                    <p className="text-2xl font-bold text-emerald-400">
+                    <p className="text-xs text-app-muted">Presupuesto total estimado</p>
+                    <p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">
                       USD {aiResult.total_usd.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </p>
                   </div>
                   {project.surface_m2 > 0 && (
                     <div className="ml-auto text-right">
-                      <p className="text-xs text-slate-400">Por m²</p>
-                      <p className="text-lg font-semibold text-slate-200">
+                      <p className="text-xs text-app-muted">Por m²</p>
+                      <p className="text-lg font-semibold text-app-text2">
                         USD {Math.round(aiResult.total_usd / project.surface_m2).toLocaleString('es-UY')}
                       </p>
                     </div>
@@ -218,40 +218,40 @@ export default function ProjectDetailPage() {
                 {/* Categorías */}
                 <div className="space-y-2">
                   {aiResult.categories.map((cat) => (
-                    <div key={cat.name} className="border border-slate-800 rounded-lg overflow-hidden">
+                    <div key={cat.name} className="border border-app-line rounded-lg overflow-hidden">
                       <button
                         onClick={() => toggleCat(cat.name)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-app-card transition-colors"
                       >
                         {/* Barra de porcentaje */}
-                        <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-24 h-1.5 bg-app-raised rounded-full overflow-hidden">
                           <div
                             className="h-full bg-violet-500 rounded-full"
                             style={{ width: `${Math.min(cat.percentage, 100)}%` }}
                           />
                         </div>
-                        <span className="text-xs text-slate-400 w-10 text-right">
+                        <span className="text-xs text-app-muted w-10 text-right">
                           {cat.percentage.toFixed(0)}%
                         </span>
-                        <span className="flex-1 text-sm font-medium text-slate-200 text-left">
+                        <span className="flex-1 text-sm font-medium text-app-text2 text-left">
                           {cat.name}
                         </span>
-                        <span className="text-sm font-semibold text-emerald-400">
+                        <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">
                           USD {cat.estimated_usd.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </span>
                         {expandedCat.has(cat.name) ? (
-                          <ChevronDown size={14} className="text-slate-500 ml-1" />
+                          <ChevronDown size={14} className="text-app-faint ml-1" />
                         ) : (
-                          <ChevronRight size={14} className="text-slate-500 ml-1" />
+                          <ChevronRight size={14} className="text-app-faint ml-1" />
                         )}
                       </button>
 
                       {/* Ítems de la categoría */}
                       {expandedCat.has(cat.name) && cat.items.length > 0 && (
-                        <div className="border-t border-slate-800">
+                        <div className="border-t border-app-line">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="bg-slate-800/40 text-slate-500">
+                              <tr className="bg-app-card text-app-muted">
                                 <th className="text-left px-4 py-1.5 font-medium">Descripción</th>
                                 <th className="text-center px-3 py-1.5 font-medium">Unidad</th>
                                 <th className="text-right px-3 py-1.5 font-medium">Cant.</th>
@@ -261,14 +261,14 @@ export default function ProjectDetailPage() {
                             </thead>
                             <tbody>
                               {cat.items.map((item, i) => (
-                                <tr key={i} className="border-t border-slate-800/50">
-                                  <td className="px-4 py-2 text-slate-300">{item.description}</td>
-                                  <td className="px-3 py-2 text-center text-slate-500">{item.unit}</td>
-                                  <td className="px-3 py-2 text-right text-slate-400">{item.quantity}</td>
-                                  <td className="px-3 py-2 text-right text-slate-400">
+                                <tr key={i} className="border-t border-app-line">
+                                  <td className="px-4 py-2 text-app-text3">{item.description}</td>
+                                  <td className="px-3 py-2 text-center text-app-muted">{item.unit}</td>
+                                  <td className="px-3 py-2 text-right text-app-muted">{item.quantity}</td>
+                                  <td className="px-3 py-2 text-right text-app-muted">
                                     ${item.unit_price.toLocaleString('es-UY')}
                                   </td>
-                                  <td className="px-4 py-2 text-right font-medium text-emerald-400">
+                                  <td className="px-4 py-2 text-right font-medium text-emerald-500 dark:text-emerald-400">
                                     ${item.subtotal.toLocaleString('es-UY')}
                                   </td>
                                 </tr>
@@ -283,13 +283,13 @@ export default function ProjectDetailPage() {
 
                 {/* Notas */}
                 {aiResult.notes && (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-                    <p className="text-xs font-semibold text-slate-400 mb-1">Observaciones</p>
-                    <p className="text-sm text-slate-300">{aiResult.notes}</p>
+                  <div className="bg-app-card border border-app-line2 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-app-muted mb-1">Observaciones</p>
+                    <p className="text-sm text-app-text3">{aiResult.notes}</p>
                   </div>
                 )}
 
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-app-faint text-center">
                   Sugerencia generada por IA — valores estimados, sujetos a revisión profesional
                 </p>
               </div>
@@ -299,13 +299,13 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Placeholder presupuesto */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
-        <FolderOpen size={36} className="mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400 text-sm font-medium">Módulo de presupuesto</p>
-        <p className="text-slate-600 text-xs mt-1">
+      <div className="bg-app-canvas border border-app-line rounded-xl p-8 text-center">
+        <FolderOpen size={36} className="mx-auto mb-3 text-app-faint" />
+        <p className="text-app-muted text-sm font-medium">Módulo de presupuesto</p>
+        <p className="text-app-faint text-xs mt-1">
           Creá versiones de presupuesto, rubros y líneas de cotización.
         </p>
-        <p className="text-slate-600 text-xs mt-3">
+        <p className="text-app-faint text-xs mt-3">
           (Próximamente — módulo en desarrollo)
         </p>
       </div>
@@ -315,9 +315,9 @@ export default function ProjectDetailPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <p className="text-xs text-slate-500 mb-1">{label}</p>
-      <p className="text-sm font-medium text-slate-100">{value}</p>
+    <div className="bg-app-canvas border border-app-line rounded-xl p-4">
+      <p className="text-xs text-app-muted mb-1">{label}</p>
+      <p className="text-sm font-medium text-app-text">{value}</p>
     </div>
   )
 }

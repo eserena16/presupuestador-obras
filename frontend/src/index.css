@@ -2,10 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Light mode (default) ──────────────────────────────── */
+:root {
+  --app-bg:      #f1f5f9;
+  --app-canvas:  #ffffff;
+  --app-card:    #f8fafc;
+  --app-raised:  #e2e8f0;
+  --app-line:    #e2e8f0;
+  --app-line2:   #cbd5e1;
+  --app-text:    #0f172a;
+  --app-text2:   #1e293b;
+  --app-text3:   #334155;
+  --app-muted:   #64748b;
+  --app-faint:   #94a3b8;
+}
+
+/* ── Dark mode ─────────────────────────────────────────── */
+.dark {
+  --app-bg:      #020617;
+  --app-canvas:  #0f172a;
+  --app-card:    #1e293b;
+  --app-raised:  #334155;
+  --app-line:    #1e293b;
+  --app-line2:   #334155;
+  --app-text:    #f1f5f9;
+  --app-text2:   #e2e8f0;
+  --app-text3:   #cbd5e1;
+  --app-muted:   #94a3b8;
+  --app-faint:   #475569;
+}
+
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   html, body, #root {
     height: 100%;
@@ -15,23 +43,13 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #0f172a;
-    color: #f1f5f9;
+    background-color: var(--app-bg);
+    color: var(--app-text);
   }
 
-  /* Scrollbar personalizada */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #1e293b;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-  }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--app-card); }
+  ::-webkit-scrollbar-thumb  { background: var(--app-raised); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--app-muted); }
 }

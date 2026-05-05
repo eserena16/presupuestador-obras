@@ -95,28 +95,28 @@ export default function ProjectFormPage() {
   }
 
   const inputCls =
-    'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors'
+    'w-full bg-app-card border border-app-line2 rounded-lg px-3 py-2.5 text-sm text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors'
 
   return (
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/')}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+          className="p-2 rounded-lg text-app-muted hover:bg-app-card hover:text-app-text transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
-        <h2 className="text-lg font-semibold text-slate-100">Nuevo proyecto</h2>
+        <h2 className="text-lg font-semibold text-app-text">Nuevo proyecto</h2>
       </div>
 
       {/* Padrón catastral */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 space-y-4">
+      <div className="bg-app-canvas rounded-xl border border-app-line p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-blue-400" />
-          <h3 className="text-sm font-semibold text-slate-200">Consulta de Padrón (Intendencia de Montevideo)</h3>
-          <span className="text-xs text-slate-500">— opcional</span>
+          <MapPin size={16} className="text-sky-500" />
+          <h3 className="text-sm font-semibold text-app-text2">Consulta de Padrón (Intendencia de Montevideo)</h3>
+          <span className="text-xs text-app-muted">— opcional</span>
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-app-muted">
           Ingresá el número de padrón catastral para auto-completar la dirección y superficie del predio.
         </p>
         <div className="flex gap-2">
@@ -126,13 +126,13 @@ export default function ProjectFormPage() {
             onChange={(e) => setPadronNum(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handlePadronSearch()}
             placeholder="Ej: 123456"
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 bg-app-card border border-app-line2 rounded-lg px-3 py-2 text-sm text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500"
           />
           <button
             type="button"
             onClick={handlePadronSearch}
             disabled={padronLoading || !padronNum.trim()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-sm font-medium rounded-lg flex items-center gap-2 transition-colors"
           >
             {padronLoading ? (
               <Loader2 size={14} className="animate-spin" />
@@ -145,7 +145,7 @@ export default function ProjectFormPage() {
             <button
               type="button"
               onClick={clearPadron}
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 text-app-muted hover:text-app-text hover:bg-app-card rounded-lg transition-colors"
             >
               <X size={16} />
             </button>
@@ -154,67 +154,67 @@ export default function ProjectFormPage() {
 
         {/* Error padrón */}
         {padronError && (
-          <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg px-3 py-2">
+          <p className="text-xs text-red-500 dark:text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
             {padronError}
           </p>
         )}
 
         {/* Resultado padrón */}
         {padronData && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
-            <p className="text-xs font-semibold text-slate-300 mb-3">
+          <div className="bg-app-card border border-app-line2 rounded-lg p-4 space-y-2">
+            <p className="text-xs font-semibold text-app-text3 mb-3">
               Datos del padrón {padronData.padron}
             </p>
             <div className="grid grid-cols-2 gap-3 text-xs">
               {padronData.direccion && (
                 <div>
-                  <span className="text-slate-500">Dirección</span>
-                  <p className="text-slate-200 font-medium">{padronData.direccion}</p>
+                  <span className="text-app-muted">Dirección</span>
+                  <p className="text-app-text2 font-medium">{padronData.direccion}</p>
                 </div>
               )}
               {padronData.barrio && (
                 <div>
-                  <span className="text-slate-500">Barrio</span>
-                  <p className="text-slate-200 font-medium">{padronData.barrio}</p>
+                  <span className="text-app-muted">Barrio</span>
+                  <p className="text-app-text2 font-medium">{padronData.barrio}</p>
                 </div>
               )}
               {padronData.superficie_m2 && (
                 <div>
-                  <span className="text-slate-500">Superficie</span>
-                  <p className="text-slate-200 font-medium">{padronData.superficie_m2} m²</p>
+                  <span className="text-app-muted">Superficie</span>
+                  <p className="text-app-text2 font-medium">{padronData.superficie_m2} m²</p>
                 </div>
               )}
               {padronData.zona && (
                 <div>
-                  <span className="text-slate-500">Zona / CCZ</span>
-                  <p className="text-slate-200 font-medium">{padronData.zona}</p>
+                  <span className="text-app-muted">Zona / CCZ</span>
+                  <p className="text-app-text2 font-medium">{padronData.zona}</p>
                 </div>
               )}
               {padronData.frente_m && (
                 <div>
-                  <span className="text-slate-500">Frente</span>
-                  <p className="text-slate-200 font-medium">{padronData.frente_m} m</p>
+                  <span className="text-app-muted">Frente</span>
+                  <p className="text-app-text2 font-medium">{padronData.frente_m} m</p>
                 </div>
               )}
               {padronData.fondo_m && (
                 <div>
-                  <span className="text-slate-500">Fondo</span>
-                  <p className="text-slate-200 font-medium">{padronData.fondo_m} m</p>
+                  <span className="text-app-muted">Fondo</span>
+                  <p className="text-app-text2 font-medium">{padronData.fondo_m} m</p>
                 </div>
               )}
             </div>
-            <p className="text-xs text-emerald-400 mt-2">
-              ✓ Dirección y superficie auto-completados en el formulario
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+              Dirección y superficie auto-completados en el formulario
             </p>
           </div>
         )}
       </div>
 
       {/* Formulario del proyecto */}
-      <form onSubmit={handleSubmit} className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-app-canvas rounded-xl border border-app-line p-6 space-y-5">
         {/* Nombre */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1.5">
+          <label className="block text-xs font-medium text-app-muted mb-1.5">
             Nombre del proyecto *
           </label>
           <input
@@ -228,7 +228,7 @@ export default function ProjectFormPage() {
 
         {/* Descripción */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1.5">Descripción</label>
+          <label className="block text-xs font-medium text-app-muted mb-1.5">Descripción</label>
           <textarea
             value={form.description}
             onChange={set('description')}
@@ -241,13 +241,13 @@ export default function ProjectFormPage() {
         <div className="grid grid-cols-2 gap-4">
           {/* Cliente */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Cliente</label>
+            <label className="block text-xs font-medium text-app-muted mb-1.5">Cliente</label>
             <input value={form.client} onChange={set('client')} placeholder="Nombre del cliente" className={inputCls} />
           </div>
 
           {/* Ubicación */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Ubicación</label>
+            <label className="block text-xs font-medium text-app-muted mb-1.5">Ubicación</label>
             <input value={form.location} onChange={set('location')} placeholder="Ciudad, región" className={inputCls} />
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function ProjectFormPage() {
         <div className="grid grid-cols-2 gap-4">
           {/* Superficie */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            <label className="block text-xs font-medium text-app-muted mb-1.5">
               Superficie (m²)
             </label>
             <input
@@ -272,7 +272,7 @@ export default function ProjectFormPage() {
 
           {/* Moneda */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Moneda</label>
+            <label className="block text-xs font-medium text-app-muted mb-1.5">Moneda</label>
             <select value={form.currency} onChange={set('currency')} className={inputCls}>
               <option value="USD">USD — Dólar</option>
               <option value="UYU">UYU — Peso uruguayo</option>
@@ -284,7 +284,7 @@ export default function ProjectFormPage() {
         <div className="grid grid-cols-2 gap-4">
           {/* Tipo de obra */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo de obra</label>
+            <label className="block text-xs font-medium text-app-muted mb-1.5">Tipo de obra</label>
             <select value={form.obra_type} onChange={set('obra_type')} className={inputCls}>
               <option value="">Sin clasificar</option>
               {OBRA_TYPES.map((t) => (
@@ -295,7 +295,7 @@ export default function ProjectFormPage() {
 
           {/* Estado */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Estado</label>
+            <label className="block text-xs font-medium text-app-muted mb-1.5">Estado</label>
             <select value={form.status} onChange={set('status')} className={inputCls}>
               {STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -308,14 +308,14 @@ export default function ProjectFormPage() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-app-text2 hover:bg-app-card rounded-lg transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={createMutation.isPending || !form.name.trim()}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-5 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
             Crear proyecto

@@ -5,3 +5,4 @@ from app.models.catalog import CatalogCategory, CatalogItem
 from app.models.client import Client
 from app.models.provider import Provider
 from app.models.tracking import TrackingExpense
+from app.models.obra_type_config import ObraTypeConfig

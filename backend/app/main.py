@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.routers import auth, users, projects, providers, budget, catalog, clients, tracking, ai, intendencia
+from app.routers import auth, users, projects, providers, budget, catalog, clients, tracking, ai, intendencia, obra_types
 
 # Crear tablas automáticamente en desarrollo
 # En producción usar Alembic migrations
@@ -39,8 +39,9 @@ app.include_router(budget.router,    prefix="/api")
 app.include_router(catalog.router,   prefix="/api")
 app.include_router(clients.router,   prefix="/api")
 app.include_router(tracking.router,  prefix="/api")
-app.include_router(ai.router,        prefix="/api")
+app.include_router(ai.router,          prefix="/api")
 app.include_router(intendencia.router, prefix="/api")
+app.include_router(obra_types.router,  prefix="/api")
 
 
 @app.get("/api/health")

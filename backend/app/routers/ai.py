@@ -22,6 +22,7 @@ from app.dependencies.auth import get_current_user
 from app.models.project import Project
 from app.models.budget import BudgetLine, Rubro
 from app.models.catalog import CatalogCategory, CatalogItem  # noqa: F401 — importados para que SQLAlchemy los registre
+from app.models.obra_type_config import ObraTypeConfig
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -78,124 +79,29 @@ def _build_system_prompt() -> str:
     )
 
 
-OBRA_TYPE_TEMPLATES: dict[str, list[str]] = {
-    "VIVIENDA_UNIFAMILIAR": [
-        "Movimiento de tierras y demoliciones",
-        "Fundaciones",
-        "Estructura de hormigon",
-        "Mamposteria",
-        "Cubiertas e impermeabilizaciones",
-        "Revoques y enlucidos",
-        "Revestimientos y pisos",
-        "Carpinteria de madera",
-        "Carpinteria metalica y herreria",
-        "Instalacion sanitaria",
-        "Instalacion electrica",
-        "Pintura",
-    ],
-    "EDIFICIO_MULTIFAMILIAR": [
-        "Movimiento de tierras y excavaciones",
-        "Fundaciones y pilotes",
-        "Estructura de hormigon armado",
-        "Mamposteria y tabiqueria",
-        "Cubiertas e impermeabilizaciones",
-        "Revoques y revestimientos",
-        "Pisos y contrapisos",
-        "Carpinteria de madera",
-        "Carpinteria metalica y herreria",
-        "Instalacion sanitaria y pluvial",
-        "Instalacion electrica y baja tension",
-        "Ascensor e instalaciones especiales",
-        "Pintura y terminaciones",
-        "Espacios comunes y areas exteriores",
-    ],
-    "INDUSTRIAL": [
-        "Movimiento de tierras y preparacion del terreno",
-        "Fundaciones y losas industriales",
-        "Estructura metalica principal",
-        "Cubierta y cerramiento",
-        "Pisos industriales",
-        "Instalacion electrica de media y baja tension",
-        "Instalacion sanitaria y pluvial",
-        "Instalaciones especiales (ventilacion, aire comprimido)",
-        "Equipamiento industrial",
-        "Accesos, veredas y exteriores",
-        "Pintura anticorrosiva y terminaciones",
-    ],
-    "COMERCIAL": [
-        "Demoliciones y preparacion",
-        "Fundaciones y estructura",
-        "Cerramientos y fachada",
-        "Cubiertas",
-        "Revestimientos y pisos",
-        "Carpinteria y vidrios",
-        "Instalacion electrica e iluminacion",
-        "Instalacion sanitaria",
-        "Climatizacion (HVAC)",
-        "Senaletica y equipamiento",
-        "Pintura y terminaciones",
-    ],
-    "EDUCACIONAL": [
-        "Movimiento de tierras",
-        "Fundaciones",
-        "Estructura",
-        "Mamposteria",
-        "Cubiertas",
-        "Revoques y revestimientos",
-        "Pisos",
-        "Carpinteria",
-        "Instalacion sanitaria",
-        "Instalacion electrica",
-        "Climatizacion y ventilacion",
-        "Mobiliario y equipamiento escolar",
-        "Pintura",
-        "Espacios exteriores y patio",
-    ],
-    "SALUD": [
-        "Demoliciones y acondicionamiento",
-        "Fundaciones y estructura",
-        "Mamposteria y tabiqueria especial",
-        "Cubiertas e impermeabilizaciones",
-        "Revestimientos ceramicos sanitarios",
-        "Pisos vinilicos y especiales",
-        "Carpinteria y puertas corta-fuego",
-        "Instalacion sanitaria y gases medicinales",
-        "Instalacion electrica y UPS",
-        "Climatizacion y flujos laminares",
-        "Equipamiento medico-hospitalario",
-        "Pintura epoxi y terminaciones",
-    ],
-    "OFICINAS": [
-        "Acondicionamiento y demoliciones",
-        "Estructura y refuerzos",
-        "Tabiqueria seca (drywall)",
-        "Cielorrasos",
-        "Pisos flotantes y alfombras",
-        "Carpinteria y vidrios",
-        "Instalacion electrica y telecomunicaciones",
-        "Instalacion sanitaria",
-        "Climatizacion (VRF/fan coil)",
-        "Iluminacion LED",
-        "Mobiliario y equipamiento",
-        "Pintura y terminaciones",
-    ],
-    "OTRO": [
-        "Movimiento de tierras",
-        "Fundaciones",
-        "Estructura",
-        "Cerramientos",
-        "Cubiertas",
-        "Revestimientos y pisos",
-        "Carpinteria",
-        "Instalacion sanitaria",
-        "Instalacion electrica",
-        "Instalaciones especiales",
-        "Pintura y terminaciones",
-    ],
-}
+def _get_template_rubros(obra_type: str | None, db: Session) -> list[str]:
+    """
+    Lee los rubros base del tipo de obra desde la DB.
+    Si no existe, devuelve una lista genérica de fallback.
+    """
+    if obra_type:
+        config = db.query(ObraTypeConfig).filter(
+            ObraTypeConfig.key == obra_type.upper(),
+            ObraTypeConfig.active == True,  # noqa: E712
+        ).first()
+        if config and config.rubros:
+            return [r["name"] for r in config.rubros if isinstance(r, dict) and "name" in r]
+
+    # Fallback genérico
+    return [
+        "Movimiento de tierras", "Fundaciones", "Estructura",
+        "Cerramientos", "Cubiertas", "Revestimientos y pisos",
+        "Carpintería", "Instalación sanitaria", "Instalación eléctrica",
+        "Instalaciones especiales", "Pintura y terminaciones",
+    ]
 
 
-def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> str:
+def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict], db: Session) -> str:
     lines = [
         f"Tipo de obra: {req.obra_type}",
         f"Superficie: {req.surface_m2} m2",
@@ -207,14 +113,14 @@ def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> s
     if req.budget_usd:
         lines.append(f"Presupuesto maximo disponible: USD {req.budget_usd:,.0f}")
 
-    # Incluir rubros base del tipo de obra como contexto
-    template_rubros = OBRA_TYPE_TEMPLATES.get(req.obra_type or "", OBRA_TYPE_TEMPLATES["OTRO"])
-    lines.append(f"\nRubros base definidos para este tipo de obra ({req.obra_type}):")
+    # Rubros base configurados para este tipo de obra
+    template_rubros = _get_template_rubros(req.obra_type, db)
+    lines.append(f"\nRubros base configurados para este tipo de obra ({req.obra_type}):")
     for i, rubro in enumerate(template_rubros, 1):
         lines.append(f"  {i}. {rubro}")
     lines.append(
-        "Usa EXACTAMENTE estos rubros como categories en el JSON de respuesta "
-        "(ajusta nombres si es necesario, pero mantiene la misma estructura)."
+        "Usa EXACTAMENTE estos rubros como 'categories' en el JSON de respuesta "
+        "(puedes ajustar nombres levemente, pero mantén la misma estructura y cantidad)."
     )
 
     if similar_projects:
@@ -291,7 +197,7 @@ async def ai_suggest_streaming(
 
     similar = _get_similar_projects(db, req.obra_type, req.surface_m2)
     system_prompt = _build_system_prompt()
-    user_prompt = _build_user_prompt(req, similar)
+    user_prompt = _build_user_prompt(req, similar, db)
 
     async def generate() -> AsyncGenerator[str, None]:
         client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -342,7 +248,7 @@ async def ai_suggest_json(
 
     similar = _get_similar_projects(db, req.obra_type, req.surface_m2)
     system_prompt = _build_system_prompt()
-    user_prompt = _build_user_prompt(req, similar)
+    user_prompt = _build_user_prompt(req, similar, db)
 
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 

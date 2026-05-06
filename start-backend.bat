@@ -67,6 +67,7 @@ echo.
 echo Verificando datos iniciales...
 python seed.py
 python seed_catalog.py
+python seed_obra_types.py
 
 REM ──────────────────────────────────────────────────────────────────
 REM  Arrancar servidor

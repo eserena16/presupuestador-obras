@@ -5,13 +5,9 @@ import { ArrowLeft, Loader2, MapPin, Search, X, UserCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi } from '../api/projects'
 import { clientsApi } from '../api/clients'
+import { obraTypesApi } from '../api/obraTypes'
 import { intendenciaApi, type PadronData } from '../api/intendencia'
 import type { ProjectCreate, ProjectStatus } from '../types'
-
-const OBRA_TYPES = [
-  'INDUSTRIAL', 'VIVIENDA_UNIFAMILIAR', 'EDIFICIO_MULTIFAMILIAR',
-  'COMERCIAL', 'EDUCACIONAL', 'SALUD', 'OFICINAS', 'OTRO',
-]
 
 const STATUSES: { value: ProjectStatus; label: string }[] = [
   { value: 'borrador', label: 'Borrador' },
@@ -40,6 +36,12 @@ export default function ProjectFormPage() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => clientsApi.list(true),
+  })
+
+  // Tipos de obra (desde la DB)
+  const { data: obraTypes = [] } = useQuery({
+    queryKey: ['obraTypes'],
+    queryFn: () => obraTypesApi.list(true),   // solo activos
   })
 
   // Padrón catastral
@@ -314,9 +316,15 @@ export default function ProjectFormPage() {
             <label className="block text-xs font-medium text-app-muted mb-1.5">Tipo de obra</label>
             <select value={form.obra_type} onChange={set('obra_type')} className={inputCls}>
               <option value="">Sin clasificar</option>
-              {OBRA_TYPES.map((t) => (
-                <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-              ))}
+              {obraTypes.length > 0
+                ? obraTypes.map((t) => (
+                    <option key={t.key} value={t.key}>{t.label}</option>
+                  ))
+                : ['INDUSTRIAL', 'VIVIENDA_UNIFAMILIAR', 'EDIFICIO_MULTIFAMILIAR',
+                   'COMERCIAL', 'EDUCACIONAL', 'SALUD', 'OFICINAS', 'OTRO'].map((k) => (
+                    <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>
+                  ))
+              }
             </select>
           </div>
 

@@ -6,8 +6,14 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { versionsApi, rubrosApi, linesApi } from '../../api/projects'
-import { getTemplateForObraType, RUBRO_COLORS } from '../../config/obraTypeTemplates'
+import { obraTypesApi } from '../../api/obraTypes'
 import type { BudgetVersion, Rubro, BudgetLine } from '../../types'
+
+const RUBRO_COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#14b8a6',
+  '#6366f1', '#d97706', '#dc2626', '#7c3aed', '#0891b2',
+]
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -763,7 +769,13 @@ function CreateVersionForm({ projectId, obraType, onCreated, onCancel }: CreateV
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
 
-  const templateRubros = getTemplateForObraType(obraType)
+  // Fetch template rubros from DB
+  const { data: obraTypeConfig } = useQuery({
+    queryKey: ['obraTypes', 'key', obraType],
+    queryFn: () => obraTypesApi.getByKey(obraType!),
+    enabled: !!obraType,
+  })
+  const templateRubros = obraTypeConfig?.rubros ?? []
 
   const doCreate = async (withTemplate: boolean) => {
     if (!name.trim()) { toast.error('El nombre es requerido'); return }
@@ -777,8 +789,8 @@ function CreateVersionForm({ projectId, obraType, onCreated, onCancel }: CreateV
       if (withTemplate && templateRubros.length > 0) {
         for (let i = 0; i < templateRubros.length; i++) {
           await rubrosApi.create(projectId, version.id, {
-            name: templateRubros[i],
-            color: RUBRO_COLORS[i % RUBRO_COLORS.length],
+            name: templateRubros[i].name,
+            color: templateRubros[i].color ?? RUBRO_COLORS[i % RUBRO_COLORS.length],
             order: i,
           })
         }
@@ -839,7 +851,7 @@ function CreateVersionForm({ projectId, obraType, onCreated, onCancel }: CreateV
             className="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors"
           >
             {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-            Usar plantilla {obraType ? `(${obraType.replace(/_/g, ' ')})` : ''}
+            Usar plantilla {obraTypeConfig ? `(${obraTypeConfig.label})` : obraType ? `(${obraType.replace(/_/g, ' ')})` : ''}
           </button>
         )}
         <button

@@ -11,6 +11,7 @@ import ProvidersPage from './pages/ProvidersPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import CatalogPage from './pages/CatalogPage'
 import ClientsPage from './pages/ClientsPage'
+import ObraTypesPage from './pages/ObraTypesPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="proveedores" element={<ProvidersPage />} />
         <Route path="admin/usuarios" element={<AdminUsersPage />} />
         <Route path="catalogo" element={<CatalogPage />} />
+        <Route path="tipos-de-obra" element={<ObraTypesPage />} />
       </Route>
 
       {/* Fallback */}

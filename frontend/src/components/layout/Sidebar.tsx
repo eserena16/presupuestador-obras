@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FolderOpen, Truck, Users,
-  LogOut, HardHat, ChevronRight, BookOpen, UserCircle,
+  LogOut, HardHat, ChevronRight, BookOpen, UserCircle, Settings2,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/clientes',      icon: <UserCircle size={18} />,      label: 'Clientes' },
   { to: '/catalogo',      icon: <BookOpen size={18} />,        label: 'Catálogo' },
   { to: '/proveedores',   icon: <Truck size={18} />,           label: 'Proveedores' },
+  { to: '/tipos-de-obra',  icon: <Settings2 size={18} />,       label: 'Tipos de Obra', adminOnly: true },
   { to: '/admin/usuarios', icon: <Users size={18} />,          label: 'Usuarios', adminOnly: true },
 ]
 

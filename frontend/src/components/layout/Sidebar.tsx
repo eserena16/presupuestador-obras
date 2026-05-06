@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FolderOpen, Truck, Users,
-  LogOut, HardHat, ChevronRight, BookOpen,
+  LogOut, HardHat, ChevronRight, BookOpen, UserCircle,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 
@@ -13,11 +13,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-  { to: '/proyectos', icon: <FolderOpen size={18} />, label: 'Proyectos' },
-  { to: '/catalogo', icon: <BookOpen size={18} />, label: 'Catálogo' },
-  { to: '/proveedores', icon: <Truck size={18} />, label: 'Proveedores' },
-  { to: '/admin/usuarios', icon: <Users size={18} />, label: 'Usuarios', adminOnly: true },
+  { to: '/',              icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+  { to: '/proyectos',     icon: <FolderOpen size={18} />,     label: 'Proyectos' },
+  { to: '/clientes',      icon: <UserCircle size={18} />,      label: 'Clientes' },
+  { to: '/catalogo',      icon: <BookOpen size={18} />,        label: 'Catálogo' },
+  { to: '/proveedores',   icon: <Truck size={18} />,           label: 'Proveedores' },
+  { to: '/admin/usuarios', icon: <Users size={18} />,          label: 'Usuarios', adminOnly: true },
 ]
 
 export function Sidebar() {

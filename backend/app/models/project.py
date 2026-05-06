@@ -7,10 +7,11 @@ import enum
 
 
 class ProjectStatus(str, enum.Enum):
-    borrador   = "borrador"
-    activo     = "activo"
-    pausado    = "pausado"
-    finalizado = "finalizado"
+    borrador    = "borrador"
+    en_progreso = "en_progreso"
+    pausado     = "pausado"
+    completado  = "completado"
+    cancelado   = "cancelado"
 
 
 class Project(Base):
@@ -24,7 +25,7 @@ class Project(Base):
     surface_m2      = Column(Float, nullable=False, default=0)
     obra_type       = Column(String(100), nullable=True)
     currency        = Column(String(10), nullable=False, default="USD")
-    status          = Column(SAEnum(ProjectStatus), nullable=False, default=ProjectStatus.borrador)
+    status          = Column(SAEnum(ProjectStatus, native_enum=False), nullable=False, default=ProjectStatus.borrador)
 
     # Relaciones de usuarios
     owner_id        = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

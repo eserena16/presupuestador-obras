@@ -41,7 +41,7 @@ export const aiApi = {
     onChunk: (text: string) => void,
     signal?: AbortSignal,
   ): Promise<AISuggestResponse> => {
-    const token = localStorage.getItem('accessToken')
+    const token = localStorage.getItem('access_token')
     const response = await fetch('/api/ai/suggest', {
       method: 'POST',
       headers: {

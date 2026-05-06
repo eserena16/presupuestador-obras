@@ -25,6 +25,11 @@ export const projectsApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/projects/${id}`)
   },
+
+  duplicate: async (id: string): Promise<Project> => {
+    const { data } = await apiClient.post<Project>(`/projects/${id}/duplicate`)
+    return data
+  },
 }
 
 export const versionsApi = {

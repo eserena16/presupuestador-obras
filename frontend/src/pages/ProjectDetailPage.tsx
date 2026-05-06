@@ -1,13 +1,18 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Activity, Loader2, FolderOpen,
   Sparkles, X, ChevronDown, ChevronRight, DollarSign,
+  Copy, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi } from '../api/projects'
 import { aiApi, type AISuggestResponse } from '../api/ai'
+import BudgetEditor from '../components/budget/BudgetEditor'
+import type { ProjectStatus } from '../types'
+
+// ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
   borrador: 'Borrador', en_progreso: 'En progreso', pausado: 'Pausado',
@@ -20,10 +25,77 @@ const STATUS_COLOR: Record<string, string> = {
   completado:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
   cancelado:   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
 }
+const ALL_STATUSES: ProjectStatus[] = [
+  'borrador', 'en_progreso', 'pausado', 'completado', 'cancelado',
+]
+
+// ─── StatusPicker ─────────────────────────────────────────────────────────────
+
+function StatusPicker({
+  projectId,
+  current,
+}: {
+  projectId: string
+  current: ProjectStatus
+}) {
+  const qc = useQueryClient()
+  const [open, setOpen] = useState(false)
+
+  const mutation = useMutation({
+    mutationFn: (status: ProjectStatus) =>
+      projectsApi.update(projectId, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project', projectId] })
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      setOpen(false)
+      toast.success('Estado actualizado')
+    },
+    onError: () => toast.error('Error al actualizar el estado'),
+  })
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors ${STATUS_COLOR[current]}`}
+      >
+        {STATUS_LABEL[current]}
+        <ChevronDown size={11} />
+      </button>
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl py-1 min-w-[160px]">
+            {ALL_STATUSES.map((s) => (
+              <button
+                key={s}
+                onClick={() => mutation.mutate(s)}
+                disabled={mutation.isPending}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-app-card transition-colors ${
+                  s === current ? 'text-sky-500 font-semibold' : 'text-app-text2'
+                }`}
+              >
+                {s === current && <Check size={11} />}
+                {s !== current && <span className="w-[11px]" />}
+                {STATUS_LABEL[s]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -31,10 +103,21 @@ export default function ProjectDetailPage() {
     enabled: !!id,
   })
 
-  // AI Suggest state
-  const [aiOpen, setAiOpen] = useState(false)
+  // ── Duplicate ──
+  const duplicateMutation = useMutation({
+    mutationFn: () => projectsApi.duplicate(id!),
+    onSuccess: (newProject) => {
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Proyecto duplicado')
+      navigate(`/proyectos/${newProject.id}`)
+    },
+    onError: () => toast.error('Error al duplicar el proyecto'),
+  })
+
+  // ── AI Suggest ──
+  const [aiOpen, setAiOpen]     = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiText, setAiText] = useState('')
+  const [aiText, setAiText]     = useState('')
   const [aiResult, setAiResult] = useState<AISuggestResponse | null>(null)
   const [expandedCat, setExpandedCat] = useState<Set<string>>(new Set())
   const abortRef = useRef<AbortController | null>(null)
@@ -71,11 +154,7 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const cancelAi = () => {
-    abortRef.current?.abort()
-    setAiLoading(false)
-  }
-
+  const cancelAi = () => { abortRef.current?.abort(); setAiLoading(false) }
   const toggleCat = (name: string) => {
     setExpandedCat((prev) => {
       const next = new Set(prev)
@@ -84,6 +163,8 @@ export default function ProjectDetailPage() {
       return next
     })
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -103,37 +184,53 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div className="flex items-start gap-3">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/proyectos')}
           className="p-2 rounded-lg text-app-muted hover:bg-app-card hover:text-app-text transition-colors mt-0.5"
         >
           <ArrowLeft size={18} />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-xl font-semibold text-app-text">{project.name}</h2>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[project.status]}`}>
-              {STATUS_LABEL[project.status]}
-            </span>
+            {/* ① CAMBIO DE ESTADO inline */}
+            <StatusPicker
+              projectId={project.id}
+              current={project.status as ProjectStatus}
+            />
           </div>
           {project.description && (
             <p className="text-sm text-app-muted mt-1">{project.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {/* Botón sugerencia IA */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* ④ DUPLICAR */}
+          <button
+            onClick={() => duplicateMutation.mutate()}
+            disabled={duplicateMutation.isPending}
+            className="flex items-center gap-2 bg-app-card hover:bg-app-raised border border-app-line2 text-app-text2 text-sm px-3 py-2 rounded-lg transition-colors disabled:opacity-60"
+            title="Duplicar proyecto"
+          >
+            {duplicateMutation.isPending ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Copy size={14} />
+            )}
+            Duplicar
+          </button>
+          {/* Botón IA */}
           <button
             onClick={handleAiSuggest}
             disabled={aiLoading}
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white text-sm px-4 py-2 rounded-lg transition-colors"
           >
             {aiLoading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            Sugerir presupuesto IA
+            Sugerir con IA
           </button>
-          {/* Botón seguimiento */}
+          {/* Seguimiento */}
           <button
             onClick={() => navigate(`/proyectos/${project.id}/seguimiento`)}
             className="flex items-center gap-2 bg-app-card hover:bg-app-raised border border-app-line2 text-app-text2 text-sm px-4 py-2 rounded-lg transition-colors"
@@ -146,19 +243,20 @@ export default function ProjectDetailPage() {
 
       {/* Info cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <InfoCard label="Cliente" value={project.client ?? '—'} />
-        <InfoCard label="Ubicación" value={project.location ?? '—'} />
-        <InfoCard label="Superficie" value={project.surface_m2 ? `${project.surface_m2} m²` : '—'} />
+        <InfoCard label="Cliente"     value={project.client ?? '—'} />
+        <InfoCard label="Ubicación"   value={project.location ?? '—'} />
+        <InfoCard label="Superficie"  value={project.surface_m2 ? `${project.surface_m2} m²` : '—'} />
         <InfoCard label="Tipo de obra" value={project.obra_type?.replace(/_/g, ' ') ?? '—'} />
       </div>
 
-      {/* Panel de sugerencia IA */}
+      {/* Panel sugerencia IA */}
       {aiOpen && (
         <div className="bg-app-canvas border border-violet-800/50 rounded-xl overflow-hidden">
-          {/* Cabecera del panel */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-app-line bg-violet-900/10">
             <Sparkles size={16} className="text-violet-400" />
-            <span className="text-sm font-semibold text-violet-200 dark:text-violet-200">Sugerencia de presupuesto — IA</span>
+            <span className="text-sm font-semibold text-violet-200 dark:text-violet-200">
+              Sugerencia de presupuesto — IA
+            </span>
             <div className="flex-1" />
             {aiLoading && (
               <button
@@ -176,9 +274,8 @@ export default function ProjectDetailPage() {
             </button>
           </div>
 
-          {/* Contenido */}
           <div className="p-5">
-            {/* Mientras carga: mostrar texto en streaming */}
+            {/* Streaming en progreso */}
             {aiLoading && !aiResult && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs text-violet-400">
@@ -223,7 +320,6 @@ export default function ProjectDetailPage() {
                         onClick={() => toggleCat(cat.name)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-app-card transition-colors"
                       >
-                        {/* Barra de porcentaje */}
                         <div className="w-24 h-1.5 bg-app-raised rounded-full overflow-hidden">
                           <div
                             className="h-full bg-violet-500 rounded-full"
@@ -239,14 +335,11 @@ export default function ProjectDetailPage() {
                         <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">
                           USD {cat.estimated_usd.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </span>
-                        {expandedCat.has(cat.name) ? (
-                          <ChevronDown size={14} className="text-app-faint ml-1" />
-                        ) : (
-                          <ChevronRight size={14} className="text-app-faint ml-1" />
-                        )}
+                        {expandedCat.has(cat.name)
+                          ? <ChevronDown size={14} className="text-app-faint ml-1" />
+                          : <ChevronRight size={14} className="text-app-faint ml-1" />}
                       </button>
 
-                      {/* Ítems de la categoría */}
                       {expandedCat.has(cat.name) && cat.items.length > 0 && (
                         <div className="border-t border-app-line">
                           <table className="w-full text-xs">
@@ -265,9 +358,7 @@ export default function ProjectDetailPage() {
                                   <td className="px-4 py-2 text-app-text3">{item.description}</td>
                                   <td className="px-3 py-2 text-center text-app-muted">{item.unit}</td>
                                   <td className="px-3 py-2 text-right text-app-muted">{item.quantity}</td>
-                                  <td className="px-3 py-2 text-right text-app-muted">
-                                    ${item.unit_price.toLocaleString('es-UY')}
-                                  </td>
+                                  <td className="px-3 py-2 text-right text-app-muted">${item.unit_price.toLocaleString('es-UY')}</td>
                                   <td className="px-4 py-2 text-right font-medium text-emerald-500 dark:text-emerald-400">
                                     ${item.subtotal.toLocaleString('es-UY')}
                                   </td>
@@ -298,17 +389,18 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Placeholder presupuesto */}
-      <div className="bg-app-canvas border border-app-line rounded-xl p-8 text-center">
-        <FolderOpen size={36} className="mx-auto mb-3 text-app-faint" />
-        <p className="text-app-muted text-sm font-medium">Módulo de presupuesto</p>
-        <p className="text-app-faint text-xs mt-1">
-          Creá versiones de presupuesto, rubros y líneas de cotización.
-        </p>
-        <p className="text-app-faint text-xs mt-3">
-          (Próximamente — módulo en desarrollo)
-        </p>
-      </div>
+      {/* ② MÓDULO DE PRESUPUESTO COMPLETO */}
+      <BudgetEditor
+        projectId={project.id}
+        obraType={project.obra_type}
+        currency={project.currency}
+        aiResult={aiResult}
+        onImportAI={() => {
+          setAiOpen(false)
+          setAiResult(null)
+          toast.success('Sugerencia importada al presupuesto')
+        }}
+      />
     </div>
   )
 }

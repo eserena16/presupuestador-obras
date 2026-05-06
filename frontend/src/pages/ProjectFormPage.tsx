@@ -1,9 +1,10 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, MapPin, Search, X } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Loader2, MapPin, Search, X, UserCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi } from '../api/projects'
+import { clientsApi } from '../api/clients'
 import { intendenciaApi, type PadronData } from '../api/intendencia'
 import type { ProjectCreate, ProjectStatus } from '../types'
 
@@ -33,6 +34,12 @@ export default function ProjectFormPage() {
     obra_type: '',
     currency: 'USD',
     status: 'borrador',
+  })
+
+  // Clientes
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsApi.list(true),
   })
 
   // Padrón catastral
@@ -241,8 +248,28 @@ export default function ProjectFormPage() {
         <div className="grid grid-cols-2 gap-4">
           {/* Cliente */}
           <div>
-            <label className="block text-xs font-medium text-app-muted mb-1.5">Cliente</label>
-            <input value={form.client} onChange={set('client')} placeholder="Nombre del cliente" className={inputCls} />
+            <label className="flex items-center gap-1 text-xs font-medium text-app-muted mb-1.5">
+              <UserCircle size={12} /> Cliente
+            </label>
+            {clients.length > 0 ? (
+              <select
+                value={form.client ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, client: e.target.value || '' }))}
+                className={inputCls}
+              >
+                <option value="">— Sin asignar —</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={form.client ?? ''}
+                onChange={set('client')}
+                placeholder="Nombre del cliente"
+                className={inputCls}
+              />
+            )}
           </div>
 
           {/* Ubicación */}

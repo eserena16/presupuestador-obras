@@ -78,6 +78,123 @@ def _build_system_prompt() -> str:
     )
 
 
+OBRA_TYPE_TEMPLATES: dict[str, list[str]] = {
+    "VIVIENDA_UNIFAMILIAR": [
+        "Movimiento de tierras y demoliciones",
+        "Fundaciones",
+        "Estructura de hormigon",
+        "Mamposteria",
+        "Cubiertas e impermeabilizaciones",
+        "Revoques y enlucidos",
+        "Revestimientos y pisos",
+        "Carpinteria de madera",
+        "Carpinteria metalica y herreria",
+        "Instalacion sanitaria",
+        "Instalacion electrica",
+        "Pintura",
+    ],
+    "EDIFICIO_MULTIFAMILIAR": [
+        "Movimiento de tierras y excavaciones",
+        "Fundaciones y pilotes",
+        "Estructura de hormigon armado",
+        "Mamposteria y tabiqueria",
+        "Cubiertas e impermeabilizaciones",
+        "Revoques y revestimientos",
+        "Pisos y contrapisos",
+        "Carpinteria de madera",
+        "Carpinteria metalica y herreria",
+        "Instalacion sanitaria y pluvial",
+        "Instalacion electrica y baja tension",
+        "Ascensor e instalaciones especiales",
+        "Pintura y terminaciones",
+        "Espacios comunes y areas exteriores",
+    ],
+    "INDUSTRIAL": [
+        "Movimiento de tierras y preparacion del terreno",
+        "Fundaciones y losas industriales",
+        "Estructura metalica principal",
+        "Cubierta y cerramiento",
+        "Pisos industriales",
+        "Instalacion electrica de media y baja tension",
+        "Instalacion sanitaria y pluvial",
+        "Instalaciones especiales (ventilacion, aire comprimido)",
+        "Equipamiento industrial",
+        "Accesos, veredas y exteriores",
+        "Pintura anticorrosiva y terminaciones",
+    ],
+    "COMERCIAL": [
+        "Demoliciones y preparacion",
+        "Fundaciones y estructura",
+        "Cerramientos y fachada",
+        "Cubiertas",
+        "Revestimientos y pisos",
+        "Carpinteria y vidrios",
+        "Instalacion electrica e iluminacion",
+        "Instalacion sanitaria",
+        "Climatizacion (HVAC)",
+        "Senaletica y equipamiento",
+        "Pintura y terminaciones",
+    ],
+    "EDUCACIONAL": [
+        "Movimiento de tierras",
+        "Fundaciones",
+        "Estructura",
+        "Mamposteria",
+        "Cubiertas",
+        "Revoques y revestimientos",
+        "Pisos",
+        "Carpinteria",
+        "Instalacion sanitaria",
+        "Instalacion electrica",
+        "Climatizacion y ventilacion",
+        "Mobiliario y equipamiento escolar",
+        "Pintura",
+        "Espacios exteriores y patio",
+    ],
+    "SALUD": [
+        "Demoliciones y acondicionamiento",
+        "Fundaciones y estructura",
+        "Mamposteria y tabiqueria especial",
+        "Cubiertas e impermeabilizaciones",
+        "Revestimientos ceramicos sanitarios",
+        "Pisos vinilicos y especiales",
+        "Carpinteria y puertas corta-fuego",
+        "Instalacion sanitaria y gases medicinales",
+        "Instalacion electrica y UPS",
+        "Climatizacion y flujos laminares",
+        "Equipamiento medico-hospitalario",
+        "Pintura epoxi y terminaciones",
+    ],
+    "OFICINAS": [
+        "Acondicionamiento y demoliciones",
+        "Estructura y refuerzos",
+        "Tabiqueria seca (drywall)",
+        "Cielorrasos",
+        "Pisos flotantes y alfombras",
+        "Carpinteria y vidrios",
+        "Instalacion electrica y telecomunicaciones",
+        "Instalacion sanitaria",
+        "Climatizacion (VRF/fan coil)",
+        "Iluminacion LED",
+        "Mobiliario y equipamiento",
+        "Pintura y terminaciones",
+    ],
+    "OTRO": [
+        "Movimiento de tierras",
+        "Fundaciones",
+        "Estructura",
+        "Cerramientos",
+        "Cubiertas",
+        "Revestimientos y pisos",
+        "Carpinteria",
+        "Instalacion sanitaria",
+        "Instalacion electrica",
+        "Instalaciones especiales",
+        "Pintura y terminaciones",
+    ],
+}
+
+
 def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> str:
     lines = [
         f"Tipo de obra: {req.obra_type}",
@@ -89,6 +206,16 @@ def _build_user_prompt(req: AISuggestRequest, similar_projects: list[dict]) -> s
         lines.append(f"Ubicacion: {req.location}")
     if req.budget_usd:
         lines.append(f"Presupuesto maximo disponible: USD {req.budget_usd:,.0f}")
+
+    # Incluir rubros base del tipo de obra como contexto
+    template_rubros = OBRA_TYPE_TEMPLATES.get(req.obra_type or "", OBRA_TYPE_TEMPLATES["OTRO"])
+    lines.append(f"\nRubros base definidos para este tipo de obra ({req.obra_type}):")
+    for i, rubro in enumerate(template_rubros, 1):
+        lines.append(f"  {i}. {rubro}")
+    lines.append(
+        "Usa EXACTAMENTE estos rubros como categories en el JSON de respuesta "
+        "(ajusta nombres si es necesario, pero mantiene la misma estructura)."
+    )
 
     if similar_projects:
         lines.append("\nProyectos similares en la base de datos (referencia de costos):")

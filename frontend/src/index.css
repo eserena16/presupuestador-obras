@@ -63,4 +63,26 @@
     caret-color: var(--app-text);
     transition: background-color 9999s ease-in-out 0s;
   }
+
+  /* Fix select/option colors — el navegador ignora Tailwind en <option> */
+  select {
+    background-color: var(--app-card);
+    color: var(--app-text);
+  }
+  select option {
+    background-color: var(--app-card);
+    color: var(--app-text);
+  }
+
+  /* Fix date inputs en dark mode */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    color-scheme: light;
+  }
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="time"] {
+    color-scheme: dark;
+  }
 }

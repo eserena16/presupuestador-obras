@@ -1,14 +1,11 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import {
-  FolderOpen, TrendingUp, Clock, Plus, Trash2, ArrowRight, Loader2, AlertTriangle,
+  FolderOpen, TrendingUp, Clock, CheckCircle, Plus, ArrowRight, Loader2,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { projectsApi } from '../api/projects'
-import type { Project } from '../types'
 
 const STATUS_LABEL: Record<string, string> = {
   borrador: 'Borrador', en_progreso: 'En progreso', pausado: 'Pausado',
@@ -24,156 +21,133 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const qc = useQueryClient()
-  const [toDelete, setToDelete] = useState<Project | null>(null)
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: projectsApi.list,
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => projectsApi.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['projects'] })
-      toast.success('Proyecto eliminado')
-      setToDelete(null)
-    },
-    onError: () => toast.error('No se pudo eliminar el proyecto'),
-  })
+  const total     = projects.length
+  const active    = projects.filter((p) => p.status === 'en_progreso').length
+  const drafts    = projects.filter((p) => p.status === 'borrador').length
+  const completed = projects.filter((p) => p.status === 'completado').length
 
-  const active = projects.filter((p) => p.status === 'en_progreso').length
-  const total  = projects.length
+  // Últimos 5 proyectos
+  const recent = [...projects]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5)
 
   return (
     <div className="space-y-6">
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={<FolderOpen size={20} className="text-sky-500" />}      label="Total proyectos" value={total}  bg="bg-sky-500/10" />
-        <KpiCard icon={<TrendingUp size={20} className="text-emerald-500" />}  label="En progreso"     value={active} bg="bg-emerald-500/10" />
-        <KpiCard icon={<Clock size={20} className="text-amber-500" />}         label="Borradores"      value={projects.filter((p) => p.status === 'borrador').length}   bg="bg-amber-500/10" />
-        <KpiCard icon={<FolderOpen size={20} className="text-purple-500" />}   label="Completados"     value={projects.filter((p) => p.status === 'completado').length} bg="bg-purple-500/10" />
+        <KpiCard
+          icon={<FolderOpen size={20} className="text-sky-500" />}
+          label="Total proyectos"
+          value={total}
+          bg="bg-sky-500/10"
+        />
+        <KpiCard
+          icon={<TrendingUp size={20} className="text-emerald-500" />}
+          label="En progreso"
+          value={active}
+          bg="bg-emerald-500/10"
+        />
+        <KpiCard
+          icon={<Clock size={20} className="text-amber-500" />}
+          label="Borradores"
+          value={drafts}
+          bg="bg-amber-500/10"
+        />
+        <KpiCard
+          icon={<CheckCircle size={20} className="text-purple-500" />}
+          label="Completados"
+          value={completed}
+          bg="bg-purple-500/10"
+        />
       </div>
 
-      {/* Header + botón nuevo */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-app-text">Proyectos</h2>
-        <button
-          onClick={() => navigate('/proyectos/nuevo')}
-          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={16} />
-          Nuevo proyecto
-        </button>
-      </div>
-
-      {/* Tabla */}
+      {/* Proyectos recientes */}
       <div className="bg-app-canvas rounded-xl border border-app-line overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-app-line">
+          <h3 className="text-sm font-semibold text-app-text">Proyectos recientes</h3>
+          <button
+            onClick={() => navigate('/proyectos')}
+            className="text-xs text-sky-500 hover:text-sky-400 flex items-center gap-1 transition-colors"
+          >
+            Ver todos <ArrowRight size={12} />
+          </button>
+        </div>
+
         {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-app-muted">
-            <Loader2 size={24} className="animate-spin mr-2" />Cargando proyectos...
+          <div className="flex items-center justify-center py-10 text-app-muted">
+            <Loader2 size={20} className="animate-spin mr-2" /> Cargando...
           </div>
-        ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-app-muted">
-            <FolderOpen size={40} className="mb-3 opacity-40" />
+        ) : recent.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-app-muted">
+            <FolderOpen size={32} className="mb-2 opacity-30" />
             <p className="text-sm">No hay proyectos todavía</p>
             <button
               onClick={() => navigate('/proyectos/nuevo')}
-              className="mt-4 text-sky-500 hover:text-sky-400 text-sm flex items-center gap-1"
+              className="mt-3 text-sky-500 hover:text-sky-400 text-sm flex items-center gap-1"
             >
               <Plus size={14} /> Crear el primero
             </button>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-app-line text-app-muted text-xs uppercase tracking-wider">
-                <th className="text-left px-4 py-3">Proyecto</th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">Cliente</th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">Tipo</th>
-                <th className="text-left px-4 py-3">Estado</th>
-                <th className="text-left px-4 py-3 hidden sm:table-cell">Creado</th>
-                <th className="px-4 py-3 w-16" />
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p) => (
-                <tr
-                  key={p.id}
-                  onClick={() => navigate(`/proyectos/${p.id}`)}
-                  className="group border-b border-app-line last:border-0 hover:bg-app-card cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-app-text">{p.name}</div>
-                    {p.location && <div className="text-xs text-app-muted mt-0.5">{p.location}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-app-muted hidden md:table-cell">{p.client ?? '—'}</td>
-                  <td className="px-4 py-3 text-app-muted hidden lg:table-cell">{p.obra_type ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[p.status] ?? STATUS_COLOR.borrador}`}>
-                      {STATUS_LABEL[p.status] ?? p.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-app-muted text-xs hidden sm:table-cell">
-                    {format(new Date(p.created_at), 'dd MMM yyyy', { locale: es })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setToDelete(p) }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-app-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <ArrowRight size={14} className="text-app-faint opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Modal confirmar borrado */}
-      {toDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-app-canvas border border-app-line2 rounded-xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle size={20} className="text-red-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-app-text">Eliminar proyecto</h3>
-                <p className="text-sm text-app-muted">Esta acción no se puede deshacer</p>
-              </div>
-            </div>
-            <p className="text-app-text2 text-sm mb-6">
-              ¿Estás seguro de que querés eliminar{' '}
-              <span className="font-semibold text-app-text">"{toDelete.name}"</span>?
-              Se eliminarán todos los presupuestos y gastos asociados.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setToDelete(null)} className="px-4 py-2 rounded-lg text-app-text2 hover:bg-app-card text-sm transition-colors">
-                Cancelar
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate(toDelete.id)}
-                disabled={deleteMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60"
+          <ul>
+            {recent.map((p) => (
+              <li
+                key={p.id}
+                onClick={() => navigate(`/proyectos/${p.id}`)}
+                className="flex items-center gap-4 px-5 py-3.5 border-b border-app-line last:border-0 hover:bg-app-card cursor-pointer transition-colors group"
               >
-                {deleteMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                Eliminar
-              </button>
-            </div>
-          </div>
+                <div className="w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center flex-shrink-0">
+                  <FolderOpen size={16} className="text-sky-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-app-text truncate">{p.name}</p>
+                  <p className="text-xs text-app-muted mt-0.5">
+                    {p.client ?? '—'}
+                    {p.location ? ` · ${p.location}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[p.status] ?? STATUS_COLOR.borrador}`}>
+                    {STATUS_LABEL[p.status] ?? p.status}
+                  </span>
+                  <span className="text-xs text-app-faint hidden sm:block">
+                    {format(new Date(p.created_at), 'dd MMM yyyy', { locale: es })}
+                  </span>
+                  <ArrowRight size={14} className="text-app-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Botón "Nuevo proyecto" en el footer */}
+        <div className="px-5 py-3 border-t border-app-line bg-app-card/50">
+          <button
+            onClick={() => navigate('/proyectos/nuevo')}
+            className="flex items-center gap-2 text-sm text-sky-500 hover:text-sky-400 transition-colors"
+          >
+            <Plus size={14} /> Nuevo proyecto
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-function KpiCard({ icon, label, value, bg }: { icon: React.ReactNode; label: string; value: number | string; bg: string }) {
+function KpiCard({
+  icon, label, value, bg,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: number | string
+  bg: string
+}) {
   return (
     <div className="bg-app-canvas border border-app-line rounded-xl p-5">
       <div className="flex items-center gap-3 mb-3">

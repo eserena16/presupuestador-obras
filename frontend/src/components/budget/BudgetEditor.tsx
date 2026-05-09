@@ -1,13 +1,13 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Pencil, ChevronDown, ChevronRight, Loader2, X,
-  Check, Sparkles, FileText,
+  Check, Sparkles, FileText, BookOpen,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { versionsApi, rubrosApi, linesApi } from '../../api/projects'
 import { obraTypesApi } from '../../api/obraTypes'
-import { catalogApi, type CatalogItem } from '../../api/catalog'
+import { catalogApi, type CatalogItem, type CatalogCategory } from '../../api/catalog'
 import type { BudgetVersion, Rubro, BudgetLine } from '../../types'
 
 const RUBRO_COLORS = [
@@ -81,6 +81,136 @@ const emptyNewLine = (): NewLineState => ({
   unit_price: '',
 })
 
+// ─── Sub-component: CatalogPicker ────────────────────────────────────────────
+
+function CatalogPicker({
+  catalogItems,
+  catalogCategories,
+  onAdd,
+  onClose,
+  adding,
+}: {
+  catalogItems: CatalogItem[]
+  catalogCategories: CatalogCategory[]
+  onAdd: (item: CatalogItem) => void
+  onClose: () => void
+  adding: boolean
+}) {
+  const [search, setSearch] = useState('')
+  const lower = search.trim().toLowerCase()
+
+  const filtered = lower.length < 1
+    ? catalogItems
+    : catalogItems.filter(
+        (item) =>
+          item.name.toLowerCase().includes(lower) ||
+          item.code.toLowerCase().includes(lower) ||
+          item.description?.toLowerCase().includes(lower)
+      )
+
+  const grouped = catalogCategories
+    .sort((a, b) => a.order - b.order)
+    .map((cat) => ({ cat, items: filtered.filter((i) => i.category_id === cat.id) }))
+    .filter(({ items }) => items.length > 0)
+
+  const uncategorized = filtered.filter(
+    (i) => !catalogCategories.some((c) => c.id === i.category_id)
+  )
+
+  return (
+    <div className="border-t-2 border-sky-500/40 bg-sky-500/5 dark:bg-sky-900/10">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-sky-500/20">
+        <BookOpen size={14} className="text-sky-500 flex-shrink-0" />
+        <p className="text-xs font-semibold text-sky-600 dark:text-sky-400 flex-1">
+          Catálogo de ítems
+          <span className="ml-2 font-normal text-app-muted">— clic para agregar (cantidad 1, editable)</span>
+        </p>
+        <button
+          onClick={onClose}
+          className="p-1 rounded text-app-faint hover:text-app-text hover:bg-app-card transition-colors"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 py-2.5 border-b border-sky-500/20">
+        <input
+          autoFocus
+          type="text"
+          placeholder="Buscar por nombre o código..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-app-canvas border border-app-line2 rounded-lg px-3 py-1.5 text-xs text-app-text2 placeholder-app-muted focus:outline-none focus:border-sky-500 transition-colors"
+        />
+      </div>
+
+      {/* Items */}
+      <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-4">
+        {filtered.length === 0 && (
+          <p className="text-xs text-app-faint text-center py-4">No se encontraron ítems</p>
+        )}
+        {grouped.map(({ cat, items }) => (
+          <div key={cat.id}>
+            <p className="text-[10px] font-semibold text-app-muted uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <span style={{ backgroundColor: cat.color }} className="w-2 h-2 rounded-full flex-shrink-0" />
+              {cat.name}
+              <span className="font-normal text-app-faint opacity-60">({items.length})</span>
+            </p>
+            <div className="space-y-0.5">
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onAdd(item)}
+                  disabled={adding}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-app-canvas border border-transparent hover:border-app-line2 text-left transition-all disabled:opacity-60 group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-app-text2 group-hover:text-app-text truncate">{item.name}</p>
+                    <p className="text-[10px] text-app-muted">
+                      {item.unit}
+                      {item.code && <> · <code className="font-mono">{item.code}</code></>}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold text-emerald-500">{item.currency} {fmt(item.unit_price)}</p>
+                  </div>
+                  <Plus size={14} className="text-sky-500 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        {uncategorized.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-app-muted uppercase tracking-wider mb-1.5">Sin categoría</p>
+            <div className="space-y-0.5">
+              {uncategorized.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onAdd(item)}
+                  disabled={adding}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-app-canvas border border-transparent hover:border-app-line2 text-left transition-all disabled:opacity-60 group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-app-text2 group-hover:text-app-text truncate">{item.name}</p>
+                    <p className="text-[10px] text-app-muted">{item.unit}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold text-emerald-500">{item.currency} {fmt(item.unit_price)}</p>
+                  </div>
+                  <Plus size={14} className="text-sky-500 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Sub-component: BudgetLinesTable ─────────────────────────────────────────
 
 interface BudgetLinesTableProps {
@@ -98,61 +228,22 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
     queryFn: () => linesApi.list(projectId, versionId, rubro.id),
   })
 
-  // Catálogo para sugerencias/autocomplete
+  // Catálogo
   const { data: catalogItems = [] } = useQuery<CatalogItem[]>({
     queryKey: ['catalogItems'],
     queryFn: () => catalogApi.getItems(),
+    staleTime: 5 * 60 * 1000,
+  })
+  const { data: catalogCategories = [] } = useQuery<CatalogCategory[]>({
+    queryKey: ['catalogCategories'],
+    queryFn: () => catalogApi.getCategories(),
     staleTime: 5 * 60 * 1000,
   })
 
   const [editingCell, setEditingCell] = useState<{ lineId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [newLine, setNewLine] = useState<NewLineState>(emptyNewLine)
-
-  // Autocomplete state
-  const [suggestions, setSuggestions] = useState<CatalogItem[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [highlightIdx, setHighlightIdx] = useState(-1)
-  const descInputRef = useRef<HTMLInputElement>(null)
-
-  const filterSuggestions = (value: string) => {
-    if (!value.trim() || value.length < 2) {
-      setSuggestions([]); setShowSuggestions(false); return
-    }
-    const lower = value.toLowerCase()
-    const filtered = catalogItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(lower) ||
-        item.code.toLowerCase().includes(lower) ||
-        item.description?.toLowerCase().includes(lower)
-    ).slice(0, 8)
-    setSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
-    setHighlightIdx(-1)
-  }
-
-  const selectCatalogItem = (item: CatalogItem) => {
-    setNewLine((p) => ({
-      ...p,
-      description: item.name,
-      unit: item.unit,
-      unit_price: String(item.unit_price),
-    }))
-    setSuggestions([]); setShowSuggestions(false)
-  }
-
-  const handleDescKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions) return
-    if (e.key === 'ArrowDown') {
-      e.preventDefault(); setHighlightIdx((i) => Math.min(i + 1, suggestions.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault(); setHighlightIdx((i) => Math.max(i - 1, -1))
-    } else if (e.key === 'Enter' && highlightIdx >= 0) {
-      e.preventDefault(); selectCatalogItem(suggestions[highlightIdx])
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false)
-    }
-  }
+  const [showCatalogPicker, setShowCatalogPicker] = useState(false)
 
   const invalidateLines = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['lines', projectId, versionId, rubro.id] })
@@ -185,6 +276,28 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
     },
     onError: () => toast.error('Error al crear la línea'),
   })
+
+  // Mutation separada para agregar desde el catálogo (no limpia el form manual)
+  const catalogAddMutation = useMutation({
+    mutationFn: (body: object) =>
+      linesApi.create(projectId, versionId, rubro.id, body),
+    onSuccess: (_data, vars: any) => {
+      invalidateLines()
+      toast.success(`"${vars.description}" agregado`)
+    },
+    onError: () => toast.error('Error al agregar desde catálogo'),
+  })
+
+  const addFromCatalog = (item: CatalogItem) => {
+    catalogAddMutation.mutate({
+      description: item.name,
+      unit: item.unit,
+      quantity: 1,
+      unit_price: item.unit_price,
+      currency,
+      order: lines.length,
+    })
+  }
 
   const startEdit = (lineId: string, field: string, currentValue: string | number) => {
     setEditingCell({ lineId, field })
@@ -328,50 +441,16 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
             </tr>
           ))}
 
-          {/* New line row */}
+          {/* New line row — ingreso manual */}
           <tr className="border-b border-app-line bg-app-card/30">
-            <td className="px-4 py-2 relative">
+            <td className="px-4 py-2">
               <input
-                ref={descInputRef}
                 className={inputCls}
-                placeholder="Descripción (o escribí para buscar en catálogo)..."
+                placeholder="Descripción manual..."
                 value={newLine.description}
                 autoComplete="off"
-                onChange={(e) => {
-                  setNewLine((p) => ({ ...p, description: e.target.value }))
-                  filterSuggestions(e.target.value)
-                }}
-                onKeyDown={handleDescKeyDown}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 160)}
+                onChange={(e) => setNewLine((p) => ({ ...p, description: e.target.value }))}
               />
-              {/* Catalog suggestions dropdown */}
-              {showSuggestions && (
-                <div className="absolute left-0 top-full z-50 mt-0.5 bg-app-canvas border border-app-line2 rounded-xl shadow-xl overflow-hidden w-80 max-h-60 overflow-y-auto">
-                  <p className="px-3 py-1.5 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line bg-app-card/40">
-                    Catálogo — seleccioná para auto-completar
-                  </p>
-                  {suggestions.map((item, i) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseDown={() => selectCatalogItem(item)}
-                      className={`w-full text-left px-3 py-2 text-xs border-b border-app-line last:border-0 transition-colors ${
-                        i === highlightIdx ? 'bg-sky-500/10' : 'hover:bg-app-card'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-app-text truncate">{item.name}</span>
-                        <code className="text-app-faint font-mono text-[10px] shrink-0">{item.code}</code>
-                      </div>
-                      <div className="flex items-center gap-2 text-app-muted mt-0.5">
-                        <span>{item.unit}</span>
-                        <span className="opacity-40">·</span>
-                        <span className="text-emerald-500 font-medium">{item.currency} {fmt(item.unit_price)}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </td>
             <td className="px-3 py-2">
               <input
@@ -424,6 +503,32 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
           </tr>
         </tbody>
       </table>
+
+      {/* Botón toggle catálogo */}
+      <div className="flex items-center px-4 py-2 border-t border-app-line/50">
+        <button
+          onClick={() => setShowCatalogPicker((v) => !v)}
+          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+            showCatalogPicker
+              ? 'bg-sky-500/10 text-sky-500 border-sky-500/30'
+              : 'text-app-muted hover:text-sky-500 hover:bg-sky-500/10 border-transparent hover:border-sky-500/20'
+          }`}
+        >
+          <BookOpen size={13} />
+          {showCatalogPicker ? 'Cerrar catálogo' : 'Agregar del catálogo'}
+        </button>
+      </div>
+
+      {/* Panel del catálogo */}
+      {showCatalogPicker && (
+        <CatalogPicker
+          catalogItems={catalogItems}
+          catalogCategories={catalogCategories}
+          onAdd={addFromCatalog}
+          onClose={() => setShowCatalogPicker(false)}
+          adding={catalogAddMutation.isPending}
+        />
+      )}
     </div>
   )
 }

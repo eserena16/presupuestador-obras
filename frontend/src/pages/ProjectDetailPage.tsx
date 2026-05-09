@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Activity, Loader2, FolderOpen,
-  Sparkles, X, ChevronDown, ChevronRight, DollarSign,
-  Copy, Check,
+  Sparkles, X, ChevronRight, DollarSign,
+  Copy, SendHorizonal, CheckCircle2, XCircle, RotateCcw, Ban, Flag,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi } from '../api/projects'
 import { aiApi, type AISuggestResponse } from '../api/ai'
 import BudgetEditor from '../components/budget/BudgetEditor'
+import { useAuthStore } from '../store/useAuthStore'
 import type { ProjectStatus } from '../types'
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -27,13 +28,13 @@ const STATUS_DESC: Record<string, string> = {
   borrador:    'Presupuesto en elaboración',
   en_revision: 'Enviado para aprobación',
   autorizado:  'Presupuesto aprobado — listo para ejecutar',
-  rechazado:   'Requiere correcciones',
+  rechazado:   'Requiere correcciones antes de reenviar',
   completado:  'Obra finalizada',
   cancelado:   'Proyecto cancelado',
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  borrador:    'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+  borrador:    'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
   en_revision: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
   autorizado:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
   rechazado:   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
@@ -41,81 +42,139 @@ const STATUS_COLOR: Record<string, string> = {
   cancelado:   'bg-slate-300 text-slate-500 dark:bg-slate-600 dark:text-slate-400',
 }
 
-// Flujo de transiciones válidas (solo se muestran las opciones relevantes desde el estado actual)
-const STATUS_TRANSITIONS: Record<string, ProjectStatus[]> = {
-  borrador:    ['en_revision', 'cancelado'],
-  en_revision: ['autorizado', 'rechazado', 'cancelado'],
-  autorizado:  ['completado', 'cancelado'],
-  rechazado:   ['borrador', 'cancelado'],
-  completado:  [],
-  cancelado:   ['borrador'],
+// Acciones disponibles por rol y estado actual
+type ActionVariant = 'primary' | 'success' | 'danger' | 'ghost'
+interface StatusAction {
+  to: ProjectStatus
+  label: string
+  icon: React.ReactNode
+  variant: ActionVariant
 }
 
-// ─── StatusPicker ─────────────────────────────────────────────────────────────
+const STATUS_ACTIONS_BY_ROLE: Record<string, Partial<Record<ProjectStatus, StatusAction[]>>> = {
+  creador: {
+    borrador: [
+      { to: 'en_revision', label: 'Enviar a revisión', icon: <SendHorizonal size={13} />, variant: 'primary' },
+      { to: 'cancelado',   label: 'Cancelar proyecto', icon: <Ban size={13} />,           variant: 'ghost'   },
+    ],
+    rechazado: [
+      { to: 'en_revision', label: 'Corregir y reenviar', icon: <SendHorizonal size={13} />, variant: 'primary' },
+      { to: 'cancelado',   label: 'Cancelar proyecto',   icon: <Ban size={13} />,           variant: 'ghost'   },
+    ],
+  },
+  autorizador: {
+    en_revision: [
+      { to: 'autorizado', label: 'Aprobar',  icon: <CheckCircle2 size={13} />, variant: 'success' },
+      { to: 'rechazado',  label: 'Rechazar', icon: <XCircle size={13} />,      variant: 'danger'  },
+      { to: 'cancelado',  label: 'Cancelar', icon: <Ban size={13} />,          variant: 'ghost'   },
+    ],
+    autorizado: [
+      { to: 'completado', label: 'Marcar como completado', icon: <Flag size={13} />,       variant: 'success' },
+      { to: 'cancelado',  label: 'Cancelar',               icon: <Ban size={13} />,        variant: 'ghost'   },
+    ],
+    cancelado: [
+      { to: 'borrador', label: 'Reabrir proyecto', icon: <RotateCcw size={13} />, variant: 'ghost' },
+    ],
+  },
+  admin: {
+    borrador: [
+      { to: 'en_revision', label: 'Enviar a revisión',      icon: <SendHorizonal size={13} />, variant: 'primary' },
+      { to: 'autorizado',  label: 'Autorizar directamente', icon: <CheckCircle2 size={13} />,  variant: 'success' },
+      { to: 'cancelado',   label: 'Cancelar',               icon: <Ban size={13} />,           variant: 'ghost'   },
+    ],
+    en_revision: [
+      { to: 'autorizado', label: 'Aprobar',  icon: <CheckCircle2 size={13} />, variant: 'success' },
+      { to: 'rechazado',  label: 'Rechazar', icon: <XCircle size={13} />,      variant: 'danger'  },
+      { to: 'cancelado',  label: 'Cancelar', icon: <Ban size={13} />,          variant: 'ghost'   },
+    ],
+    autorizado: [
+      { to: 'completado', label: 'Marcar como completado', icon: <Flag size={13} />,       variant: 'success' },
+      { to: 'cancelado',  label: 'Cancelar',               icon: <Ban size={13} />,        variant: 'ghost'   },
+    ],
+    rechazado: [
+      { to: 'en_revision', label: 'Corregir y reenviar', icon: <SendHorizonal size={13} />, variant: 'primary' },
+      { to: 'cancelado',   label: 'Cancelar',            icon: <Ban size={13} />,           variant: 'ghost'   },
+    ],
+    cancelado: [
+      { to: 'borrador', label: 'Reabrir proyecto', icon: <RotateCcw size={13} />, variant: 'ghost' },
+    ],
+  },
+}
 
-function StatusPicker({
+const ACTION_BTN: Record<ActionVariant, string> = {
+  primary: 'bg-sky-600 hover:bg-sky-500 text-white',
+  success: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+  danger:  'bg-red-600 hover:bg-red-500 text-white',
+  ghost:   'bg-app-card hover:bg-app-raised text-app-text2 border border-app-line2',
+}
+
+// ─── StatusActions ────────────────────────────────────────────────────────────
+
+function StatusActions({
   projectId,
   current,
+  userRole,
 }: {
   projectId: string
   current: ProjectStatus
+  userRole: string
 }) {
   const qc = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
 
   const mutation = useMutation({
-    mutationFn: (status: ProjectStatus) =>
-      projectsApi.update(projectId, { status }),
+    mutationFn: (newStatus: ProjectStatus) => {
+      setPendingStatus(newStatus)
+      return projectsApi.update(projectId, { status: newStatus })
+    },
     onSuccess: (_, newStatus) => {
       qc.invalidateQueries({ queryKey: ['project', projectId] })
       qc.invalidateQueries({ queryKey: ['projects'] })
-      setOpen(false)
-      toast.success(`Estado → ${STATUS_LABEL[newStatus]}`)
+      setPendingStatus(null)
+      toast.success(`Estado actualizado → ${STATUS_LABEL[newStatus]}`)
     },
-    onError: () => toast.error('Error al actualizar el estado'),
+    onError: (e: any) => {
+      setPendingStatus(null)
+      const msg = e?.response?.data?.detail ?? 'Error al actualizar el estado'
+      toast.error(msg)
+    },
   })
 
-  const transitions = STATUS_TRANSITIONS[current] ?? []
+  // Calcular rol efectivo para las transiciones
+  const effectiveRole = userRole === 'admin' ? 'admin'
+    : userRole === 'autorizador' ? 'autorizador'
+    : 'creador'
+
+  const actions = STATUS_ACTIONS_BY_ROLE[effectiveRole]?.[current] ?? []
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        title="Clic para cambiar estado"
-        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer
-          ${STATUS_COLOR[current] ?? 'bg-app-card text-app-muted'}
-          border-current/40 hover:opacity-90 hover:ring-2 hover:ring-offset-1 hover:ring-current/30`}
-      >
-        {mutation.isPending
-          ? <Loader2 size={11} className="animate-spin" />
-          : <span className="w-2 h-2 rounded-full bg-current opacity-60 flex-shrink-0" />
-        }
-        {STATUS_LABEL[current] ?? current}
-        {transitions.length > 0 && <ChevronDown size={12} className="opacity-70" />}
-      </button>
+    <div className="flex items-center gap-2 flex-wrap mt-1.5">
+      {/* Badge de estado actual */}
+      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${STATUS_COLOR[current]}`}>
+        {STATUS_LABEL[current]}
+      </span>
 
-      {open && transitions.length > 0 && (
+      {/* Descripción del estado */}
+      <span className="text-xs text-app-muted hidden sm:inline">— {STATUS_DESC[current]}</span>
+
+      {/* Botones de acción */}
+      {actions.length > 0 && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1.5 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl overflow-hidden min-w-[220px]">
-            <p className="px-3 py-2 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line bg-app-card/40">
-              Cambiar estado del proyecto
-            </p>
-            {transitions.map((s) => (
-              <button
-                key={s}
-                onClick={() => mutation.mutate(s)}
-                disabled={mutation.isPending}
-                className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-app-card transition-colors border-b border-app-line last:border-0 disabled:opacity-60"
-              >
-                <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLOR[s].split(' ')[0]}`} />
-                <div>
-                  <p className="text-xs font-semibold text-app-text">{STATUS_LABEL[s]}</p>
-                  <p className="text-[10px] text-app-muted">{STATUS_DESC[s]}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+          <span className="text-app-faint text-xs mx-0.5">·</span>
+          {actions.map((action) => (
+            <button
+              key={action.to}
+              onClick={() => mutation.mutate(action.to)}
+              disabled={mutation.isPending}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${ACTION_BTN[action.variant]}`}
+            >
+              {mutation.isPending && pendingStatus === action.to
+                ? <Loader2 size={12} className="animate-spin" />
+                : action.icon
+              }
+              {action.label}
+            </button>
+          ))}
         </>
       )}
     </div>
@@ -128,6 +187,7 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const user = useAuthStore((s) => s.user)
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -227,14 +287,12 @@ export default function ProjectDetailPage() {
         </button>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-semibold text-app-text">{project.name}</h2>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-xs text-app-muted">Estado:</span>
-            {/* ① CAMBIO DE ESTADO inline — clickeable */}
-            <StatusPicker
-              projectId={project.id}
-              current={project.status as ProjectStatus}
-            />
-          </div>
+          {/* ① ESTADO + ACCIONES según rol */}
+          <StatusActions
+            projectId={project.id}
+            current={project.status as ProjectStatus}
+            userRole={user?.role ?? 'creador'}
+          />
           {project.description && (
             <p className="text-sm text-app-muted mt-1">{project.description}</p>
           )}

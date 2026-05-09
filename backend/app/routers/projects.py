@@ -10,6 +10,29 @@ from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["Proyectos"])
 
+# ---------------------------------------------------------------------------
+# Transiciones de estado permitidas por rol
+# ---------------------------------------------------------------------------
+STATUS_TRANSITIONS_BY_ROLE: dict = {
+    UserRole.creador: {
+        ProjectStatus.borrador:    [ProjectStatus.en_revision, ProjectStatus.cancelado],
+        ProjectStatus.rechazado:   [ProjectStatus.borrador,    ProjectStatus.cancelado],
+    },
+    UserRole.autorizador: {
+        ProjectStatus.en_revision: [ProjectStatus.autorizado,  ProjectStatus.rechazado, ProjectStatus.cancelado],
+        ProjectStatus.autorizado:  [ProjectStatus.completado,  ProjectStatus.cancelado],
+        ProjectStatus.cancelado:   [ProjectStatus.borrador],
+    },
+    UserRole.admin: {
+        ProjectStatus.borrador:    [ProjectStatus.en_revision, ProjectStatus.autorizado,  ProjectStatus.cancelado],
+        ProjectStatus.en_revision: [ProjectStatus.autorizado,  ProjectStatus.rechazado,   ProjectStatus.cancelado],
+        ProjectStatus.autorizado:  [ProjectStatus.completado,  ProjectStatus.cancelado],
+        ProjectStatus.rechazado:   [ProjectStatus.borrador,    ProjectStatus.cancelado],
+        ProjectStatus.completado:  [],
+        ProjectStatus.cancelado:   [ProjectStatus.borrador],
+    },
+}
+
 
 def check_project_access(project: Project, user: User):
     """Verifica que el usuario puede acceder al proyecto."""
@@ -70,7 +93,22 @@ def update_project(
         raise HTTPException(status_code=404, detail="Proyecto no encontrado.")
     check_project_access(project, current_user)
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    # Validar transición de estado si se está cambiando
+    update_data = body.model_dump(exclude_unset=True)
+    if "status" in update_data and update_data["status"] != project.status:
+        new_status = update_data["status"]
+        allowed = STATUS_TRANSITIONS_BY_ROLE.get(current_user.role, {}).get(project.status, [])
+        if new_status not in allowed:
+            role_label = current_user.role.value
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"El rol '{role_label}' no puede cambiar el estado "
+                    f"de '{project.status.value}' a '{new_status.value}'."
+                ),
+            )
+
+    for field, value in update_data.items():
         setattr(project, field, value)
     db.commit()
     db.refresh(project)

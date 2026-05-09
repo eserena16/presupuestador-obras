@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Pencil, ChevronDown, ChevronRight, Loader2, X,
@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast'
 import { versionsApi, rubrosApi, linesApi } from '../../api/projects'
 import { obraTypesApi } from '../../api/obraTypes'
+import { catalogApi, type CatalogItem } from '../../api/catalog'
 import type { BudgetVersion, Rubro, BudgetLine } from '../../types'
 
 const RUBRO_COLORS = [
@@ -97,9 +98,61 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
     queryFn: () => linesApi.list(projectId, versionId, rubro.id),
   })
 
+  // Catálogo para sugerencias/autocomplete
+  const { data: catalogItems = [] } = useQuery<CatalogItem[]>({
+    queryKey: ['catalogItems'],
+    queryFn: () => catalogApi.getItems(),
+    staleTime: 5 * 60 * 1000,
+  })
+
   const [editingCell, setEditingCell] = useState<{ lineId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [newLine, setNewLine] = useState<NewLineState>(emptyNewLine)
+
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<CatalogItem[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [highlightIdx, setHighlightIdx] = useState(-1)
+  const descInputRef = useRef<HTMLInputElement>(null)
+
+  const filterSuggestions = (value: string) => {
+    if (!value.trim() || value.length < 2) {
+      setSuggestions([]); setShowSuggestions(false); return
+    }
+    const lower = value.toLowerCase()
+    const filtered = catalogItems.filter(
+      (item) =>
+        item.name.toLowerCase().includes(lower) ||
+        item.code.toLowerCase().includes(lower) ||
+        item.description?.toLowerCase().includes(lower)
+    ).slice(0, 8)
+    setSuggestions(filtered)
+    setShowSuggestions(filtered.length > 0)
+    setHighlightIdx(-1)
+  }
+
+  const selectCatalogItem = (item: CatalogItem) => {
+    setNewLine((p) => ({
+      ...p,
+      description: item.name,
+      unit: item.unit,
+      unit_price: String(item.unit_price),
+    }))
+    setSuggestions([]); setShowSuggestions(false)
+  }
+
+  const handleDescKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); setHighlightIdx((i) => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); setHighlightIdx((i) => Math.max(i - 1, -1))
+    } else if (e.key === 'Enter' && highlightIdx >= 0) {
+      e.preventDefault(); selectCatalogItem(suggestions[highlightIdx])
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
+    }
+  }
 
   const invalidateLines = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['lines', projectId, versionId, rubro.id] })
@@ -277,13 +330,48 @@ function BudgetLinesTable({ projectId, versionId, rubro, currency }: BudgetLines
 
           {/* New line row */}
           <tr className="border-b border-app-line bg-app-card/30">
-            <td className="px-4 py-2">
+            <td className="px-4 py-2 relative">
               <input
+                ref={descInputRef}
                 className={inputCls}
-                placeholder="Nueva descripción..."
+                placeholder="Descripción (o escribí para buscar en catálogo)..."
                 value={newLine.description}
-                onChange={(e) => setNewLine((p) => ({ ...p, description: e.target.value }))}
+                autoComplete="off"
+                onChange={(e) => {
+                  setNewLine((p) => ({ ...p, description: e.target.value }))
+                  filterSuggestions(e.target.value)
+                }}
+                onKeyDown={handleDescKeyDown}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 160)}
               />
+              {/* Catalog suggestions dropdown */}
+              {showSuggestions && (
+                <div className="absolute left-0 top-full z-50 mt-0.5 bg-app-canvas border border-app-line2 rounded-xl shadow-xl overflow-hidden w-80 max-h-60 overflow-y-auto">
+                  <p className="px-3 py-1.5 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line bg-app-card/40">
+                    Catálogo — seleccioná para auto-completar
+                  </p>
+                  {suggestions.map((item, i) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onMouseDown={() => selectCatalogItem(item)}
+                      className={`w-full text-left px-3 py-2 text-xs border-b border-app-line last:border-0 transition-colors ${
+                        i === highlightIdx ? 'bg-sky-500/10' : 'hover:bg-app-card'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-app-text truncate">{item.name}</span>
+                        <code className="text-app-faint font-mono text-[10px] shrink-0">{item.code}</code>
+                      </div>
+                      <div className="flex items-center gap-2 text-app-muted mt-0.5">
+                        <span>{item.unit}</span>
+                        <span className="opacity-40">·</span>
+                        <span className="text-emerald-500 font-medium">{item.currency} {fmt(item.unit_price)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </td>
             <td className="px-3 py-2">
               <input

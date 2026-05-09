@@ -57,30 +57,39 @@ function StatusPicker({
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors ${STATUS_COLOR[current]}`}
+        title="Clic para cambiar estado"
+        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer
+          ${STATUS_COLOR[current]}
+          border-current/40 hover:opacity-90 hover:ring-2 hover:ring-offset-1 hover:ring-current/30`}
       >
+        {mutation.isPending
+          ? <Loader2 size={11} className="animate-spin" />
+          : <span className="w-2 h-2 rounded-full bg-current opacity-60 flex-shrink-0" />
+        }
         {STATUS_LABEL[current]}
-        <ChevronDown size={11} />
+        <ChevronDown size={12} className="opacity-70" />
       </button>
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl py-1 min-w-[160px]">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1.5 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl py-1 min-w-[170px]">
+            <p className="px-3 py-1.5 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line">
+              Cambiar estado
+            </p>
             {ALL_STATUSES.map((s) => (
               <button
                 key={s}
                 onClick={() => mutation.mutate(s)}
                 disabled={mutation.isPending}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-app-card transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-app-card transition-colors ${
                   s === current ? 'text-sky-500 font-semibold' : 'text-app-text2'
                 }`}
               >
-                {s === current && <Check size={11} />}
-                {s !== current && <span className="w-[11px]" />}
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  s === current ? 'bg-sky-500' : 'bg-current opacity-40'
+                }`} />
                 {STATUS_LABEL[s]}
+                {s === current && <Check size={11} className="ml-auto" />}
               </button>
             ))}
           </div>
@@ -194,9 +203,10 @@ export default function ProjectDetailPage() {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-xl font-semibold text-app-text">{project.name}</h2>
-            {/* ① CAMBIO DE ESTADO inline */}
+          <h2 className="text-xl font-semibold text-app-text">{project.name}</h2>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs text-app-muted">Estado:</span>
+            {/* ① CAMBIO DE ESTADO inline — clickeable */}
             <StatusPicker
               projectId={project.id}
               current={project.status as ProjectStatus}

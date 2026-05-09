@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Pencil, ChevronDown, ChevronRight, Loader2, X,
   Check, Sparkles, FileText, BookOpen,
@@ -791,15 +791,18 @@ function VersionContent({
     queryFn: () => rubrosApi.list(projectId, versionId),
   })
 
-  // Collect all lines for summary footer
-  const allLinesQueries = rubros.map((r) => {
-    // We rely on already-cached line data for the footer total
-    return qc.getQueryData<BudgetLine[]>(['lines', projectId, versionId, r.id]) ?? []
+  // Suscribirse reactivamente a todas las líneas de todos los rubros
+  // para que el total se actualice al agregar/editar/borrar líneas
+  const lineResults = useQueries({
+    queries: rubros.map((r) => ({
+      queryKey: ['lines', projectId, versionId, r.id],
+      queryFn: () => linesApi.list(projectId, versionId, r.id),
+    })),
   })
 
-  const totalLines = allLinesQueries.reduce((sum, ls) => sum + ls.length, 0)
-  const grandTotal = allLinesQueries.reduce(
-    (sum, ls) => sum + ls.reduce((s, l) => s + l.subtotal, 0),
+  const totalLines = lineResults.reduce((sum, q) => sum + (q.data?.length ?? 0), 0)
+  const grandTotal = lineResults.reduce(
+    (sum, q) => sum + (q.data ?? []).reduce((s, l) => s + l.subtotal, 0),
     0,
   )
 

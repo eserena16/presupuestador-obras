@@ -21,7 +21,7 @@ export interface LoginResponse {
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-export type ProjectStatus = 'borrador' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado'
+export type ProjectStatus = 'borrador' | 'en_revision' | 'autorizado' | 'rechazado' | 'completado' | 'cancelado'
 
 export interface Project {
   id: string

@@ -15,19 +15,41 @@ import type { ProjectStatus } from '../types'
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
-  borrador: 'Borrador', en_progreso: 'En progreso', pausado: 'Pausado',
-  completado: 'Completado', cancelado: 'Cancelado',
+  borrador:    'Borrador',
+  en_revision: 'En revisión',
+  autorizado:  'Autorizado',
+  rechazado:   'Rechazado',
+  completado:  'Completado',
+  cancelado:   'Cancelado',
 }
+
+const STATUS_DESC: Record<string, string> = {
+  borrador:    'Presupuesto en elaboración',
+  en_revision: 'Enviado para aprobación',
+  autorizado:  'Presupuesto aprobado — listo para ejecutar',
+  rechazado:   'Requiere correcciones',
+  completado:  'Obra finalizada',
+  cancelado:   'Proyecto cancelado',
+}
+
 const STATUS_COLOR: Record<string, string> = {
   borrador:    'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-  en_progreso: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
-  pausado:     'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-  completado:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-  cancelado:   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+  en_revision: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+  autorizado:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+  rechazado:   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+  completado:  'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
+  cancelado:   'bg-slate-300 text-slate-500 dark:bg-slate-600 dark:text-slate-400',
 }
-const ALL_STATUSES: ProjectStatus[] = [
-  'borrador', 'en_progreso', 'pausado', 'completado', 'cancelado',
-]
+
+// Flujo de transiciones válidas (solo se muestran las opciones relevantes desde el estado actual)
+const STATUS_TRANSITIONS: Record<string, ProjectStatus[]> = {
+  borrador:    ['en_revision', 'cancelado'],
+  en_revision: ['autorizado', 'rechazado', 'cancelado'],
+  autorizado:  ['completado', 'cancelado'],
+  rechazado:   ['borrador', 'cancelado'],
+  completado:  [],
+  cancelado:   ['borrador'],
+}
 
 // ─── StatusPicker ─────────────────────────────────────────────────────────────
 
@@ -44,14 +66,16 @@ function StatusPicker({
   const mutation = useMutation({
     mutationFn: (status: ProjectStatus) =>
       projectsApi.update(projectId, { status }),
-    onSuccess: () => {
+    onSuccess: (_, newStatus) => {
       qc.invalidateQueries({ queryKey: ['project', projectId] })
       qc.invalidateQueries({ queryKey: ['projects'] })
       setOpen(false)
-      toast.success('Estado actualizado')
+      toast.success(`Estado → ${STATUS_LABEL[newStatus]}`)
     },
     onError: () => toast.error('Error al actualizar el estado'),
   })
+
+  const transitions = STATUS_TRANSITIONS[current] ?? []
 
   return (
     <div className="relative">
@@ -59,37 +83,36 @@ function StatusPicker({
         onClick={() => setOpen((v) => !v)}
         title="Clic para cambiar estado"
         className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer
-          ${STATUS_COLOR[current]}
+          ${STATUS_COLOR[current] ?? 'bg-app-card text-app-muted'}
           border-current/40 hover:opacity-90 hover:ring-2 hover:ring-offset-1 hover:ring-current/30`}
       >
         {mutation.isPending
           ? <Loader2 size={11} className="animate-spin" />
           : <span className="w-2 h-2 rounded-full bg-current opacity-60 flex-shrink-0" />
         }
-        {STATUS_LABEL[current]}
-        <ChevronDown size={12} className="opacity-70" />
+        {STATUS_LABEL[current] ?? current}
+        {transitions.length > 0 && <ChevronDown size={12} className="opacity-70" />}
       </button>
-      {open && (
+
+      {open && transitions.length > 0 && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1.5 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl py-1 min-w-[170px]">
-            <p className="px-3 py-1.5 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line">
-              Cambiar estado
+          <div className="absolute left-0 top-full mt-1.5 z-20 bg-app-canvas border border-app-line2 rounded-xl shadow-xl overflow-hidden min-w-[220px]">
+            <p className="px-3 py-2 text-[10px] font-semibold text-app-muted uppercase tracking-wider border-b border-app-line bg-app-card/40">
+              Cambiar estado del proyecto
             </p>
-            {ALL_STATUSES.map((s) => (
+            {transitions.map((s) => (
               <button
                 key={s}
                 onClick={() => mutation.mutate(s)}
                 disabled={mutation.isPending}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-app-card transition-colors ${
-                  s === current ? 'text-sky-500 font-semibold' : 'text-app-text2'
-                }`}
+                className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-app-card transition-colors border-b border-app-line last:border-0 disabled:opacity-60"
               >
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  s === current ? 'bg-sky-500' : 'bg-current opacity-40'
-                }`} />
-                {STATUS_LABEL[s]}
-                {s === current && <Check size={11} className="ml-auto" />}
+                <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLOR[s].split(' ')[0]}`} />
+                <div>
+                  <p className="text-xs font-semibold text-app-text">{STATUS_LABEL[s]}</p>
+                  <p className="text-[10px] text-app-muted">{STATUS_DESC[s]}</p>
+                </div>
               </button>
             ))}
           </div>

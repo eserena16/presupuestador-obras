@@ -7,15 +7,7 @@ import { projectsApi } from '../api/projects'
 import { clientsApi } from '../api/clients'
 import { obraTypesApi } from '../api/obraTypes'
 import { intendenciaApi, type PadronData } from '../api/intendencia'
-import type { ProjectCreate, ProjectStatus } from '../types'
-
-const STATUSES: { value: ProjectStatus; label: string }[] = [
-  { value: 'borrador', label: 'Borrador' },
-  { value: 'en_progreso', label: 'En progreso' },
-  { value: 'pausado', label: 'Pausado' },
-  { value: 'completado', label: 'Completado' },
-  { value: 'cancelado', label: 'Cancelado' },
-]
+import type { ProjectCreate } from '../types'
 
 export default function ProjectFormPage() {
   const navigate = useNavigate()
@@ -29,7 +21,7 @@ export default function ProjectFormPage() {
     surface_m2: 0,
     obra_type: '',
     currency: 'USD',
-    status: 'borrador',
+    // status: NO se manda — el backend siempre crea como 'borrador'
   })
 
   // Clientes
@@ -88,19 +80,34 @@ export default function ProjectFormPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: () => projectsApi.create(form),
+    mutationFn: (body: ProjectCreate) => projectsApi.create(body),
     onSuccess: (project) => {
       qc.invalidateQueries({ queryKey: ['projects'] })
       toast.success('Proyecto creado')
       navigate(`/proyectos/${project.id}`)
     },
-    onError: () => toast.error('Error al crear el proyecto'),
+    onError: (e: any) => {
+      const detail = e?.response?.data?.detail
+      const msg = Array.isArray(detail)
+        ? detail.map((d: any) => d.msg).join(', ')
+        : detail ?? 'Error al crear el proyecto'
+      toast.error(msg)
+    },
   })
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!form.name.trim()) return
-    createMutation.mutate()
+    // Limpiar campos opcionales — no mandar strings vacíos al backend
+    createMutation.mutate({
+      name:        form.name.trim(),
+      description: form.description?.trim() || undefined,
+      location:    form.location?.trim()    || undefined,
+      client:      form.client?.trim()      || undefined,
+      surface_m2:  form.surface_m2 || 0,
+      obra_type:   form.obra_type?.trim()   || undefined,
+      currency:    form.currency || 'USD',
+    })
   }
 
   const inputCls =
@@ -310,33 +317,24 @@ export default function ProjectFormPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Tipo de obra */}
-          <div>
-            <label className="block text-xs font-medium text-app-muted mb-1.5">Tipo de obra</label>
-            <select value={form.obra_type} onChange={set('obra_type')} className={inputCls}>
-              <option value="">Sin clasificar</option>
-              {obraTypes.length > 0
-                ? obraTypes.map((t) => (
-                    <option key={t.key} value={t.key}>{t.label}</option>
-                  ))
-                : ['INDUSTRIAL', 'VIVIENDA_UNIFAMILIAR', 'EDIFICIO_MULTIFAMILIAR',
-                   'COMERCIAL', 'EDUCACIONAL', 'SALUD', 'OFICINAS', 'OTRO'].map((k) => (
-                    <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>
-                  ))
-              }
-            </select>
-          </div>
-
-          {/* Estado */}
-          <div>
-            <label className="block text-xs font-medium text-app-muted mb-1.5">Estado</label>
-            <select value={form.status} onChange={set('status')} className={inputCls}>
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+        {/* Tipo de obra (full width) */}
+        <div>
+          <label className="block text-xs font-medium text-app-muted mb-1.5">Tipo de obra</label>
+          <select value={form.obra_type} onChange={set('obra_type')} className={inputCls}>
+            <option value="">Sin clasificar</option>
+            {obraTypes.length > 0
+              ? obraTypes.map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))
+              : ['INDUSTRIAL', 'VIVIENDA_UNIFAMILIAR', 'EDIFICIO_MULTIFAMILIAR',
+                 'COMERCIAL', 'EDUCACIONAL', 'SALUD', 'OFICINAS', 'OTRO'].map((k) => (
+                  <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>
+                ))
+            }
+          </select>
+          <p className="text-xs text-app-faint mt-1">
+            El proyecto se crea en estado <strong>Borrador</strong> — podés enviarlo a revisión una vez armado el presupuesto.
+          </p>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

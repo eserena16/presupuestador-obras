@@ -7,10 +7,11 @@ import enum
 
 
 class ProjectStatus(str, enum.Enum):
-    borrador    = "borrador"
-    en_progreso = "en_progreso"
-    pausado     = "pausado"
-    completado  = "completado"
+    borrador    = "borrador"      # recién creado, en elaboración
+    en_revision = "en_revision"   # enviado para aprobación del presupuesto
+    autorizado  = "autorizado"    # presupuesto aprobado
+    rechazado   = "rechazado"     # requiere correcciones, vuelve a borrador
+    completado  = "completado"    # obra finalizada
     cancelado   = "cancelado"
 
 
